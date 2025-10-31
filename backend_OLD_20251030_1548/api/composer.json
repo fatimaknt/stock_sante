@@ -1,0 +1,6 @@
+{
+    "require": {
+        "laravel/sanctum": "^3.3",
+        "fruitcake/laravel-cors": "^3.0"
+    }
+}

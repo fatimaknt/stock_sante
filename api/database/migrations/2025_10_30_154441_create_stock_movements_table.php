@@ -1,0 +1,3 @@
+<?php
+use Illuminate\Database\Migrations\Migration;use Illuminate\Database\Schema\Blueprint;use Illuminate\Support\Facades\Schema;
+return new class extends Migration{public function up():void{Schema::create('stock_movements',function(Blueprint $table){$table->id();$table->foreignId('product_id')->constrained('products')->cascadeOnDelete();$table->enum('type',['receipt','stockout','adjustment']);$table->integer('quantity');$table->string('beneficiary')->nullable();$table->string('agent')->nullable();$table->text('notes')->nullable();$table->date('movement_date');$table->string('status')->default('Complétée');$table->timestamps();});}public function down():void{Schema::dropIfExists('stock_movements');}};

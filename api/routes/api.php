@@ -1,0 +1,46 @@
+<?php
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\{ProductController,ReceiptController,StockOutController,InventoryController,StatsController,CategoryController,UserController,AuthController,UserActivationController};
+
+// Routes publiques (pas d'authentification)
+Route::post('auth/login', [AuthController::class,'login']);
+Route::post('auth/register', [AuthController::class,'register']);
+Route::get('auth/validate-token', [UserActivationController::class,'validateToken']);
+Route::post('auth/activate', [UserActivationController::class,'activate']);
+Route::get('auth/google', [AuthController::class,'redirectToGoogle']);
+Route::get('auth/google/callback', [AuthController::class,'handleGoogleCallback']);
+
+// Routes protégées (authentification requise)
+Route::middleware('auth:sanctum')->group(function () {
+    // Produits
+    Route::apiResource('products', ProductController::class);
+
+    // Réceptions
+    Route::get('receipts', [ReceiptController::class,'index']);
+    Route::post('receipts', [ReceiptController::class,'store']);
+
+    // Sorties
+    Route::get('stockouts', [StockOutController::class,'index']);
+    Route::post('stockouts', [StockOutController::class,'store']);
+
+    // Inventaires
+    Route::get('inventories', [InventoryController::class,'index']);
+    Route::post('inventories', [InventoryController::class,'store']);
+
+    // Statistiques
+    Route::get('stats', [StatsController::class,'index']);
+
+    // Catégories
+    Route::get('categories', [CategoryController::class,'index']);
+
+    // Utilisateurs
+    Route::get('users', [UserController::class,'index']);
+    Route::post('users', [UserController::class,'store']);
+    Route::put('users/{user}', [UserController::class,'update']);
+    Route::delete('users/{user}', [UserController::class,'destroy']);
+    Route::post('users/invite', [UserController::class,'invite']);
+
+    // Authentification protégée
+    Route::post('auth/logout', [AuthController::class,'logout']);
+    Route::get('auth/user', [AuthController::class,'user']);
+});
