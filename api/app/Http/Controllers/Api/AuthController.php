@@ -116,6 +116,7 @@ class AuthController extends Controller
             'email' => $request->user()->email,
             'role' => $request->user()->role,
             'status' => $request->user()->status,
+            'permissions' => $request->user()->permissions ?? [],
         ]);
     }
 

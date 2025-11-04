@@ -91,7 +91,29 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'role' => 'required|string|in:Utilisateur,Administrateur,Gestionnaire',
+            'permissions' => 'sometimes|array',
         ]);
+
+        // Vérifier si une invitation existe déjà pour cet email
+        $existingInvitation = UserInvitation::where('email', $data['email'])
+            ->where('used', false)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if ($existingInvitation) {
+            return response()->json([
+                'error' => 'Une invitation est déjà en cours pour cet email',
+                'message' => 'Un email d\'invitation a déjà été envoyé à cette adresse et n\'a pas encore été utilisé.',
+            ], 422);
+        }
+
+        // Si une invitation expirée ou utilisée existe, la supprimer avant d'en créer une nouvelle
+        UserInvitation::where('email', $data['email'])
+            ->where(function ($query) {
+                $query->where('used', true)
+                      ->orWhere('expires_at', '<=', now());
+            })
+            ->delete();
 
         $token = Str::random(64);
         $expiresAt = now()->addHours(24);
@@ -100,7 +122,7 @@ class UserController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'role' => $data['role'],
-            'permissions' => $data['permissions'] ?? $this->getDefaultPermissions($data['role']),
+            'permissions' => $request->input('permissions', $this->getDefaultPermissions($data['role'])),
             'token' => $token,
             'expires_at' => $expiresAt,
         ]);

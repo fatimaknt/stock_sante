@@ -1,7 +1,7 @@
 import React, { useEffect, useState, FormEvent, useRef } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
-import { PlusIcon, TrashIcon, ClipboardDocumentListIcon, MagnifyingGlassIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, ClipboardDocumentListIcon, MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api';
 
 type Product = { id: number; name: string; quantity: number };
@@ -163,43 +163,49 @@ export default function InventoryPage() {
 
     return (
         <Layout>
-            <div className="p-7 space-y-9">
-                {/* Top header bar */}
+            <div className="pt-24 px-7 pb-7 space-y-6">
                 <TopBar />
 
-                {/* Page header */}
-                <div>
-                    <h1 className="text-4xl font-bold mb-2">Inventaire</h1>
-                    <p className="text-gray-500">Enregistrez les comptages d'inventaire et ajustez les stocks</p>
+                {/* Header avec gradient */}
+                <div className="bg-gradient-to-r from-purple-600 to-indigo-700 rounded-xl shadow-lg p-8 text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-4xl font-bold mb-2">Inventaire</h1>
+                            <p className="text-purple-100">Enregistrez les comptages d'inventaire et ajustez les stocks</p>
+                        </div>
+                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                            <ClipboardDocumentListIcon className="w-8 h-8 text-white" />
+                        </div>
+                    </div>
                 </div>
 
                 {error && (
-                    <div className="bg-red-50 text-red-700 border border-red-200 px-4 py-3 rounded-lg flex items-center justify-between">
-                        <span>{error}</span>
-                        <button type="button" onClick={() => setError('')} className="ml-4 p-1 rounded-full hover:bg-red-100 text-red-700 hover:text-red-900 transition-colors">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                    <div className="bg-gradient-to-r from-red-50 to-red-100 text-red-700 border-l-4 border-red-500 px-6 py-4 rounded-lg shadow-md flex items-center justify-between">
+                        <span className="font-medium">{error}</span>
+                        <button type="button" onClick={() => setError('')} className="ml-4 p-1 rounded-full hover:bg-red-200 text-red-700 hover:text-red-900 transition-colors">
+                            <XMarkIcon className="w-5 h-5" />
                         </button>
                     </div>
                 )}
 
                 {success && (
-                    <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-lg flex items-center justify-between">
-                        <span>{success}</span>
-                        <button type="button" onClick={() => setSuccess('')} className="ml-4 p-1 rounded-full hover:bg-emerald-100 text-emerald-700 hover:text-emerald-900 transition-colors">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                    <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 border-l-4 border-emerald-500 px-6 py-4 rounded-lg shadow-md flex items-center justify-between">
+                        <span className="font-medium">{success}</span>
+                        <button type="button" onClick={() => setSuccess('')} className="ml-4 p-1 rounded-full hover:bg-emerald-200 text-emerald-700 hover:text-emerald-900 transition-colors">
+                            <XMarkIcon className="w-5 h-5" />
                         </button>
                     </div>
                 )}
 
                 {/* Nouvel inventaire form */}
-                <div className="bg-white border rounded-lg shadow-md p-6">
-                    <div className="flex items-center gap-3 mb-6">
-                        <ClipboardDocumentListIcon className="w-6 h-6 text-emerald-600" />
-                        <h2 className="text-2xl font-bold">Nouvel inventaire</h2>
+                <div className="bg-white border rounded-xl shadow-lg p-6">
+                    <div className="bg-gradient-to-r from-purple-600 to-indigo-700 rounded-xl p-6 mb-6 -m-6 -mt-0">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                <ClipboardDocumentListIcon className="w-6 h-6 text-white" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-white">Nouvel inventaire</h2>
+                        </div>
                     </div>
 
                     <form onSubmit={save} className="space-y-6">
@@ -210,7 +216,7 @@ export default function InventoryPage() {
                                     Agent responsable <span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    className="w-full border rounded-lg px-3 py-2"
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm"
                                     placeholder="Nom de l'agent"
                                     value={agent}
                                     onChange={e => setAgent(e.target.value)}
@@ -223,7 +229,7 @@ export default function InventoryPage() {
                                 </label>
                                 <input
                                     type="date"
-                                    className="w-full border rounded-lg px-3 py-2"
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm"
                                     value={date}
                                     onChange={e => setDate(e.target.value)}
                                     required
@@ -240,32 +246,35 @@ export default function InventoryPage() {
                                 <button
                                     type="button"
                                     onClick={addLine}
-                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-lg hover:from-purple-700 hover:to-indigo-800 transition-all transform hover:scale-105 font-medium"
                                 >
-                                    <PlusIcon className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Ajouter une ligne</span>
+                                    <PlusIcon className="w-5 h-5" />
+                                    <span>Ajouter une ligne</span>
                                 </button>
                             </div>
                             <div className="border rounded-lg overflow-hidden">
                                 <div className="space-y-3 p-4">
                                     {items.map((it, idx) => (
                                         <div key={idx} className="flex items-center gap-3">
-                                            <select
-                                                className="flex-1 border rounded-lg px-3 py-2"
-                                                value={String(it.product_id || '')}
-                                                onChange={e => updateLine(idx, { product_id: e.target.value ? Number(e.target.value) : '' })}
-                                                required
-                                            >
-                                                <option value="">Sélectionner un produit</option>
-                                                {products.map(p => (
-                                                    <option key={p.id} value={p.id} disabled={p.quantity < 0}>
-                                                        {`${p.name} (Stock: ${p.quantity})`}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            <div className="relative flex-1">
+                                                <select
+                                                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm bg-white"
+                                                    value={String(it.product_id || '')}
+                                                    onChange={e => updateLine(idx, { product_id: e.target.value ? Number(e.target.value) : '' })}
+                                                    required
+                                                >
+                                                    <option value="">Sélectionner un produit</option>
+                                                    {products.map(p => (
+                                                        <option key={p.id} value={p.id} disabled={p.quantity < 0}>
+                                                            {`${p.name} (Stock: ${p.quantity})`}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                            </div>
                                             <input
                                                 type="number"
-                                                className="w-50 border rounded-lg px-3 py-2"
+                                                className="w-50 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm"
                                                 placeholder="Quantité comptée"
                                                 value={it.counted_qty || ''}
                                                 onChange={e => updateLine(idx, { counted_qty: Number(e.target.value) })}
@@ -276,9 +285,9 @@ export default function InventoryPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => removeLine(idx)}
-                                                    className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors"
+                                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
                                                 >
-                                                    <TrashIcon className="w-4 h-4" />
+                                                    <TrashIcon className="w-5 h-5" />
                                                 </button>
                                             )}
                                         </div>
@@ -291,7 +300,7 @@ export default function InventoryPage() {
                         <div>
                             <label className="text-sm font-semibold mb-2 block">Observation</label>
                             <textarea
-                                className="w-full border rounded-lg px-3 py-2"
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm resize-none"
                                 rows={4}
                                 placeholder="Commentaires sur cet inventaire..."
                                 value={notes}
@@ -300,20 +309,20 @@ export default function InventoryPage() {
                         </div>
 
                         {/* Bouton Enregistrer */}
-                        <div className="pt-4">
+                        <div className="pt-4 border-t">
                             <button
                                 type="submit"
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 text-white rounded-lg shadow hover:bg-emerald-800 transition-colors"
+                                className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-700 text-white rounded-lg shadow-lg hover:from-purple-700 hover:to-indigo-800 transition-all transform hover:scale-105 font-medium"
                             >
                                 <ClipboardDocumentListIcon className="w-5 h-5" />
-                                <span className="font-medium">Enregistrer l'inventaire</span>
+                                <span>Enregistrer l'inventaire</span>
                             </button>
                         </div>
                     </form>
                 </div>
 
                 {/* Search and Filters */}
-                <div className="bg-white border rounded-lg shadow-sm p-6">
+                <div className="bg-white border rounded-xl shadow-lg p-6">
                     <div className="flex items-center gap-4">
                         {/* Search Bar */}
                         <div className="flex-1 relative">
@@ -323,7 +332,7 @@ export default function InventoryPage() {
                                 placeholder="Rechercher par produit ou agent..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                             />
                         </div>
 
@@ -333,7 +342,7 @@ export default function InventoryPage() {
                                 type="date"
                                 value={selectedDate}
                                 onChange={(e) => setSelectedDate(e.target.value)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 min-w-[150px]"
+                                className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-w-[150px] shadow-sm transition-all"
                             />
                         </div>
 
@@ -344,9 +353,9 @@ export default function InventoryPage() {
                                     e.stopPropagation();
                                     setIsVarianceDropdownOpen(!isVarianceDropdownOpen);
                                 }}
-                                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between shadow-sm"
                             >
-                                <span>{selectedVariance === 'Tous' ? 'Tous les écarts' : selectedVariance}</span>
+                                <span className="font-medium">{selectedVariance === 'Tous' ? 'Tous les écarts' : selectedVariance}</span>
                                 <ChevronDownIcon className="h-4 w-4 text-gray-500" />
                             </button>
                             {isVarianceDropdownOpen && (
@@ -398,27 +407,36 @@ export default function InventoryPage() {
                 </div>
 
                 {/* Historique des inventaires */}
-                <div className="bg-white border rounded-lg shadow-md p-6">
-                    <h2 className="text-2xl font-bold mb-6">Historique des inventaires ({filteredRows.reduce((acc, inv) => acc + (inv.items?.length || 0), 0)})</h2>
-                    <div className="border rounded-lg overflow-hidden">
+                <div className="bg-white border rounded-xl shadow-lg p-6">
+                    <div className="flex items-center gap-3 mb-6 pb-4 border-b">
+                        <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                            <ClipboardDocumentListIcon className="w-6 h-6 text-purple-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900">Historique des inventaires</h2>
+                            <p className="text-sm text-gray-500">{filteredRows.reduce((acc, inv) => acc + (inv.items?.length || 0), 0)} entrée{filteredRows.reduce((acc, inv) => acc + (inv.items?.length || 0), 0) > 1 ? 's' : ''}</p>
+                        </div>
+                    </div>
+                    <div className="border rounded-xl overflow-hidden">
                         <table className="min-w-full text-md">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                                 <tr>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Date</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Produit</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Stock théorique</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Quantité comptée</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Écart</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Agent</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Observation</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Actions</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Date</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Produit</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Stock théorique</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Quantité comptée</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Écart</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Agent</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Observation</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} className="px-3 py-8 text-center text-gray-500">
-                                            Aucun inventaire trouvé
+                                        <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                                            <ClipboardDocumentListIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                                            <p className="font-medium">Aucun inventaire trouvé</p>
                                         </td>
                                     </tr>
                                 ) : (
@@ -426,22 +444,29 @@ export default function InventoryPage() {
                                         return inv.items?.map((item, itemIdx) => {
                                             const product = products.find(p => p.id === item.product_id);
                                             return (
-                                                <tr key={`${inv.id}-${item.id}`} className="border-t hover:bg-emerald-50 transition-colors">
-                                                    <td className="px-3 py-4">{formatDate(inv.counted_at)}</td>
-                                                    <td className="px-3 py-4">{product?.name || `Produit #${item.product_id}`}</td>
-                                                    <td className="px-3 py-4">{item.theoretical_qty}</td>
-                                                    <td className="px-3 py-4">{item.counted_qty}</td>
-                                                    <td className={`px-3 py-4 font-semibold ${item.variance < 0 ? 'text-red-600' : item.variance > 0 ? 'text-green-600' : 'text-gray-700'}`}>
-                                                        {item.variance > 0 ? '+' : ''}{item.variance}
+                                                <tr key={`${inv.id}-${item.id}`} className="border-t hover:bg-purple-50 transition-colors">
+                                                    <td className="px-6 py-5 font-medium text-gray-700">{formatDate(inv.counted_at)}</td>
+                                                    <td className="px-6 py-5 font-semibold text-gray-900">{product?.name || `Produit #${item.product_id}`}</td>
+                                                    <td className="px-6 py-5 text-gray-700">{item.theoretical_qty}</td>
+                                                    <td className="px-6 py-5 text-gray-700 font-medium">{item.counted_qty}</td>
+                                                    <td className="px-6 py-5">
+                                                        <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${item.variance < 0
+                                                            ? 'bg-gradient-to-r from-red-600 to-red-700 text-white'
+                                                            : item.variance > 0
+                                                                ? 'bg-gradient-to-r from-green-600 to-green-700 text-white'
+                                                                : 'bg-gradient-to-r from-gray-600 to-gray-700 text-white'
+                                                            }`}>
+                                                            {item.variance > 0 ? '+' : ''}{item.variance}
+                                                        </span>
                                                     </td>
-                                                    <td className="px-3 py-4">{inv.agent || 'ND'}</td>
-                                                    <td className="px-3 py-4">{inv.notes || '-'}</td>
-                                                    <td className="px-3 py-4">
+                                                    <td className="px-6 py-5 text-gray-700">{inv.agent || 'ND'}</td>
+                                                    <td className="px-6 py-5 text-gray-600">{inv.notes || '-'}</td>
+                                                    <td className="px-6 py-5">
                                                         <button
-                                                            className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors"
+                                                            className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
                                                             aria-label="supprimer"
                                                         >
-                                                            <TrashIcon className="w-4 h-4" />
+                                                            <TrashIcon className="w-5 h-5" />
                                                         </button>
                                                     </td>
                                                 </tr>

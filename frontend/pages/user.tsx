@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
-import { UserPlusIcon, EnvelopeIcon, XMarkIcon, EyeIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon, UserIcon, ShieldCheckIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { UserPlusIcon, EnvelopeIcon, XMarkIcon, EyeIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon, UserIcon, ShieldCheckIcon, ChevronDownIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
 import { getJSON, API } from '../utils/api';
 
@@ -325,99 +325,91 @@ export default function UserPage() {
 
     return (
         <Layout>
-            <div className="p-7 space-y-9">
-                {/* Top header bar */}
+            <div className="pt-24 px-7 pb-7 space-y-6">
                 <TopBar />
 
-                {/* Page header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-4xl font-bold mb-2">Gestion des Utilisateurs</h1>
-                        <p className="text-gray-500">Gérer les utilisateurs, rôles et permissions du système</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={openCreate}
-                            className="inline-flex items-center gap-2 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg shadow hover:bg-gray-50 transition-colors"
-                        >
-                            <UserPlusIcon className="w-5 h-5" />
-                            <span className="font-medium">Créer un utilisateur</span>
-                        </button>
-                        <button
-                            onClick={openInvite}
-                            className="inline-flex items-center gap-2 px-4 py-3 bg-emerald-700 text-white rounded-lg shadow hover:bg-emerald-800 transition-colors"
-                        >
-                            <EnvelopeIcon className="w-5 h-5" />
-                            <span className="font-medium">Inviter un utilisateur</span>
-                        </button>
+                {/* Header avec gradient */}
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-8 text-white">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h1 className="text-4xl font-bold mb-2">Gestion des Utilisateurs</h1>
+                            <p className="text-blue-100">Gérez les utilisateurs, rôles et permissions du système</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={openCreate}
+                                className="inline-flex items-center gap-2 px-4 py-3 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors backdrop-blur-sm"
+                            >
+                                <UserPlusIcon className="w-5 h-5" />
+                                <span className="font-medium">Créer</span>
+                            </button>
+                            <button
+                                onClick={openInvite}
+                                className="inline-flex items-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-lg transition-colors"
+                            >
+                                <EnvelopeIcon className="w-5 h-5" />
+                                <span className="font-medium">Inviter</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 {/* Error/Success alerts */}
                 {error && (
-                    <div className="bg-red-50 text-red-700 border border-red-200 px-4 py-3 rounded-lg flex items-center justify-between">
-                        <span>{error}</span>
-                        <button onClick={() => setError('')} className="ml-4 p-1 rounded-full hover:bg-red-100 text-red-700 hover:text-red-900 transition-colors">
+                    <div className="bg-gradient-to-r from-red-50 to-red-100 text-red-700 border-l-4 border-red-500 px-6 py-4 rounded-lg shadow-md flex items-center justify-between">
+                        <span className="font-medium">{error}</span>
+                        <button onClick={() => setError('')} className="ml-4 p-1 rounded-full hover:bg-red-200 text-red-700 hover:text-red-900 transition-colors">
                             <XMarkIcon className="w-5 h-5" />
                         </button>
                     </div>
                 )}
                 {success && (
-                    <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-lg flex items-center justify-between">
-                        <span>{success}</span>
-                        <button onClick={() => setSuccess('')} className="ml-4 p-1 rounded-full hover:bg-emerald-100 text-emerald-700 hover:text-emerald-900 transition-colors">
+                    <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 border-l-4 border-emerald-500 px-6 py-4 rounded-lg shadow-md flex items-center justify-between">
+                        <span className="font-medium">{success}</span>
+                        <button onClick={() => setSuccess('')} className="ml-4 p-1 rounded-full hover:bg-emerald-200 text-emerald-700 hover:text-emerald-900 transition-colors">
                             <XMarkIcon className="w-5 h-5" />
                         </button>
                     </div>
                 )}
 
-                {/* KPIs */}
+                {/* KPIs avec gradients */}
                 <div className="grid grid-cols-3 gap-6">
                     {/* Total Users */}
-                    <div className="bg-white border rounded-lg shadow-sm p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600 mb-1">Total utilisateurs</p>
-                                <p className="text-3xl font-bold text-gray-900">{users.length}</p>
-                                <p className="text-sm text-gray-500 mt-1">Inscrits</p>
-                            </div>
-                            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                                <UserIcon className="h-6 w-6 text-blue-600" />
-                            </div>
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
+                        <div className="flex items-center justify-between mb-4">
+                            <UserIcon className="w-8 h-8 text-blue-100" />
+                            <ArrowTrendingUpIcon className="w-5 h-5 text-blue-100" />
                         </div>
+                        <p className="text-blue-100 text-sm font-medium mb-1">Total utilisateurs</p>
+                        <p className="text-3xl font-bold mb-1">{users.length}</p>
+                        <p className="text-blue-100 text-xs">Inscrits</p>
                     </div>
 
                     {/* Active Users */}
-                    <div className="bg-white border rounded-lg shadow-sm p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600 mb-1">Utilisateurs actifs</p>
-                                <p className="text-3xl font-bold text-emerald-600">{users.filter(u => u.status === 'Actif').length}</p>
-                                <p className="text-sm text-gray-500 mt-1">En ligne</p>
-                            </div>
-                            <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center">
-                                <UserIcon className="h-6 w-6 text-emerald-600" />
-                            </div>
+                    <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
+                        <div className="flex items-center justify-between mb-4">
+                            <UserIcon className="w-8 h-8 text-emerald-100" />
+                            <CheckCircleIcon className="w-5 h-5 text-emerald-100" />
                         </div>
+                        <p className="text-emerald-100 text-sm font-medium mb-1">Utilisateurs actifs</p>
+                        <p className="text-3xl font-bold mb-1">{users.filter(u => u.status === 'Actif').length}</p>
+                        <p className="text-emerald-100 text-xs">En ligne</p>
                     </div>
 
                     {/* Administrators */}
-                    <div className="bg-white border rounded-lg shadow-sm p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600 mb-1">Administrateurs</p>
-                                <p className="text-3xl font-bold text-red-600">{users.filter(u => u.role === 'Administrateur').length}</p>
-                                <p className="text-sm text-gray-500 mt-1">Privilégiés</p>
-                            </div>
-                            <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                                <ShieldCheckIcon className="h-6 w-6 text-red-600" />
-                            </div>
+                    <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
+                        <div className="flex items-center justify-between mb-4">
+                            <ShieldCheckIcon className="w-8 h-8 text-red-100" />
+                            <ArrowTrendingUpIcon className="w-5 h-5 text-red-100" />
                         </div>
+                        <p className="text-red-100 text-sm font-medium mb-1">Administrateurs</p>
+                        <p className="text-3xl font-bold mb-1">{users.filter(u => u.role === 'Administrateur').length}</p>
+                        <p className="text-red-100 text-xs">Privilégiés</p>
                     </div>
                 </div>
 
                 {/* Search and Filters */}
-                <div className="bg-white border rounded-lg shadow-sm p-6">
+                <div className="bg-white border rounded-xl shadow-lg p-6">
                     <div className="flex items-center gap-4">
                         {/* Search Bar */}
                         <div className="flex-1 relative">
@@ -427,7 +419,7 @@ export default function UserPage() {
                                 placeholder="Rechercher par nom, email ou rôle..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                             />
                         </div>
 
@@ -439,9 +431,9 @@ export default function UserPage() {
                                     setIsRoleDropdownOpen(!isRoleDropdownOpen);
                                     setIsStatusDropdownOpen(false);
                                 }}
-                                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between shadow-sm"
                             >
-                                <span>{selectedRole === 'Tous' ? 'Tous les rôles' : selectedRole}</span>
+                                <span className="font-medium">{selectedRole === 'Tous' ? 'Tous les rôles' : selectedRole}</span>
                                 <ChevronDownIcon className="h-4 w-4 text-gray-500" />
                             </button>
                             {isRoleDropdownOpen && (
@@ -498,9 +490,9 @@ export default function UserPage() {
                                     setIsStatusDropdownOpen(!isStatusDropdownOpen);
                                     setIsRoleDropdownOpen(false);
                                 }}
-                                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between shadow-sm"
                             >
-                                <span>{selectedStatus === 'Tous' ? 'Tous les statuts' : selectedStatus}</span>
+                                <span className="font-medium">{selectedStatus === 'Tous' ? 'Tous les statuts' : selectedStatus}</span>
                                 <ChevronDownIcon className="h-4 w-4 text-gray-500" />
                             </button>
                             {isStatusDropdownOpen && (
@@ -542,33 +534,42 @@ export default function UserPage() {
                 </div>
 
                 {/* User list table */}
-                <div className="bg-white border rounded-lg shadow-md p-6">
-                    <h2 className="text-2xl font-bold mb-6">Liste des Utilisateurs ({filteredUsers.length})</h2>
-                    <div className="border rounded-lg overflow-hidden">
+                <div className="bg-white border rounded-xl shadow-lg p-6">
+                    <div className="flex items-center gap-3 mb-6 pb-4 border-b">
+                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                            <UserIcon className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900">Liste des Utilisateurs</h2>
+                            <p className="text-sm text-gray-500">{filteredUsers.length} utilisateur{filteredUsers.length > 1 ? 's' : ''}</p>
+                        </div>
+                    </div>
+                    <div className="border rounded-xl overflow-hidden">
                         <table className="min-w-full text-md">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                                 <tr>
-                                    <th className="text-left px-4 py-4 text-gray-600 font-semibold">Utilisateur</th>
-                                    <th className="text-left px-4 py-4 text-gray-600 font-semibold">Rôle</th>
-                                    <th className="text-left px-4 py-4 text-gray-600 font-semibold">Statut</th>
-                                    <th className="text-left px-4 py-4 text-gray-600 font-semibold">Dernière connexion</th>
-                                    <th className="text-left px-4 py-4 text-gray-600 font-semibold">Permissions</th>
-                                    <th className="text-left px-4 py-4 text-gray-600 font-semibold">Actions</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Utilisateur</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Rôle</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Statut</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Dernière connexion</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Permissions</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredUsers.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
-                                            Aucun utilisateur trouvé
+                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                                            <UserIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                                            <p className="font-medium">Aucun utilisateur trouvé</p>
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredUsers.map((user) => (
-                                        <tr key={user.id} className="border-t hover:bg-emerald-50 transition-colors">
-                                            <td className="px-4 py-4">
+                                        <tr key={user.id} className="border-t hover:bg-blue-50 transition-colors">
+                                            <td className="px-6 py-5">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+                                                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold shadow-md">
                                                         {getUserInitials(user.name)}
                                                     </div>
                                                     <div>
@@ -577,52 +578,57 @@ export default function UserPage() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4">
-                                                <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-semibold ${getRoleColor(user.role)}`}>
+                                            <td className="px-6 py-5">
+                                                <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${getRoleColor(user.role)}`}>
                                                     {user.role}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-4">
-                                                <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(user.status)}`}>
+                                            <td className="px-6 py-5">
+                                                <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${getStatusColor(user.status)}`}>
                                                     {user.status}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-4 text-gray-700">{formatDate(user.last_login)}</td>
-                                            <td className="px-4 py-4">
+                                            <td className="px-6 py-5 text-gray-700 font-medium">{formatDate(user.last_login)}</td>
+                                            <td className="px-6 py-5">
                                                 <div className="flex flex-wrap gap-2">
                                                     {user.permissions && user.permissions.length > 0 ? (
-                                                        user.permissions.map((perm, idx) => (
-                                                            <span key={idx} className="inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                                                        user.permissions.slice(0, 2).map((perm, idx) => (
+                                                            <span key={idx} className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 border border-gray-300">
                                                                 {perm}
                                                             </span>
                                                         ))
                                                     ) : (
                                                         <span className="text-gray-400">-</span>
                                                     )}
+                                                    {user.permissions && user.permissions.length > 2 && (
+                                                        <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-300">
+                                                            +{user.permissions.length - 2}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4">
+                                            <td className="px-6 py-5">
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={() => openView(user)}
-                                                        className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white shadow-sm hover:bg-gray-50 transition-colors"
+                                                        className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all transform hover:scale-110"
                                                         aria-label="voir"
                                                     >
-                                                        <EyeIcon className="w-4 h-4 text-slate-700" />
+                                                        <EyeIcon className="w-5 h-5" />
                                                     </button>
                                                     <button
                                                         onClick={() => openEdit(user)}
-                                                        className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white shadow-sm hover:bg-gray-50 transition-colors"
+                                                        className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all transform hover:scale-110"
                                                         aria-label="éditer"
                                                     >
-                                                        <PencilIcon className="w-4 h-4 text-slate-700" />
+                                                        <PencilIcon className="w-5 h-5" />
                                                     </button>
                                                     <button
                                                         onClick={() => openDelete(user)}
-                                                        className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-red-200 bg-white shadow-sm hover:bg-red-50 transition-colors"
+                                                        className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
                                                         aria-label="supprimer"
                                                     >
-                                                        <TrashIcon className="w-4 h-4 text-red-600" />
+                                                        <TrashIcon className="w-5 h-5" />
                                                     </button>
                                                 </div>
                                             </td>
@@ -636,12 +642,12 @@ export default function UserPage() {
 
                 {/* Create User Modal */}
                 {isCreateOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-                            <div className="p-6 border-b">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto border border-gray-200">
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-t-xl">
                                 <div className="flex items-center justify-between">
-                                    <h2 className="text-2xl font-bold">Créer un utilisateur</h2>
-                                    <button onClick={closeCreate} className="text-gray-400 hover:text-gray-600">
+                                    <h2 className="text-2xl font-bold text-white">Créer un utilisateur</h2>
+                                    <button onClick={closeCreate} className="text-white hover:text-gray-200 transition-colors">
                                         <XMarkIcon className="w-6 h-6" />
                                     </button>
                                 </div>
@@ -688,30 +694,36 @@ export default function UserPage() {
                                         <label className="text-sm font-semibold mb-2 block">
                                             Rôle <span className="text-red-500">*</span>
                                         </label>
-                                        <select
-                                            className="w-full border rounded-lg px-3 py-2"
-                                            value={form.role}
-                                            onChange={e => setForm({ ...form, role: e.target.value })}
-                                            required
-                                        >
-                                            <option value="Utilisateur">Utilisateur</option>
-                                            <option value="Administrateur">Administrateur</option>
-                                            <option value="Gestionnaire">Gestionnaire</option>
-                                        </select>
+                                        <div className="relative">
+                                            <select
+                                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm bg-white"
+                                                value={form.role}
+                                                onChange={e => setForm({ ...form, role: e.target.value })}
+                                                required
+                                            >
+                                                <option value="Utilisateur">Utilisateur</option>
+                                                <option value="Administrateur">Administrateur</option>
+                                                <option value="Gestionnaire">Gestionnaire</option>
+                                            </select>
+                                            <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="text-sm font-semibold mb-2 block">
                                             Statut <span className="text-red-500">*</span>
                                         </label>
-                                        <select
-                                            className="w-full border rounded-lg px-3 py-2"
-                                            value={form.status}
-                                            onChange={e => setForm({ ...form, status: e.target.value })}
-                                            required
-                                        >
-                                            <option value="Actif">Actif</option>
-                                            <option value="Inactif">Inactif</option>
-                                        </select>
+                                        <div className="relative">
+                                            <select
+                                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm bg-white"
+                                                value={form.status}
+                                                onChange={e => setForm({ ...form, status: e.target.value })}
+                                                required
+                                            >
+                                                <option value="Actif">Actif</option>
+                                                <option value="Inactif">Inactif</option>
+                                            </select>
+                                            <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -737,20 +749,20 @@ export default function UserPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-end gap-3 pt-4">
+                                <div className="flex items-center justify-end gap-3 pt-4 border-t">
                                     <button
                                         type="button"
                                         onClick={closeCreate}
-                                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                                        className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
                                     >
                                         Annuler
                                     </button>
                                     <button
                                         type="submit"
-                                        className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 text-white rounded-lg shadow hover:bg-emerald-800 transition-colors"
+                                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all transform hover:scale-105 font-medium"
                                     >
                                         <UserPlusIcon className="w-5 h-5" />
-                                        <span className="font-medium">Créer</span>
+                                        <span>Créer</span>
                                     </button>
                                 </div>
                             </form>
@@ -760,12 +772,12 @@ export default function UserPage() {
 
                 {/* Invite User Modal */}
                 {isInviteOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-                            <div className="p-6 border-b">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto border border-gray-200">
+                            <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 p-6 rounded-t-xl">
                                 <div className="flex items-center justify-between">
-                                    <h2 className="text-2xl font-bold">Inviter un utilisateur</h2>
-                                    <button onClick={closeInvite} className="text-gray-400 hover:text-gray-600">
+                                    <h2 className="text-2xl font-bold text-white">Inviter un utilisateur</h2>
+                                    <button onClick={closeInvite} className="text-white hover:text-gray-200 transition-colors">
                                         <XMarkIcon className="w-6 h-6" />
                                     </button>
                                 </div>
@@ -799,16 +811,19 @@ export default function UserPage() {
                                     <label className="text-sm font-semibold mb-2 block">
                                         Rôle <span className="text-red-500">*</span>
                                     </label>
-                                    <select
-                                        className="w-full border rounded-lg px-3 py-2"
-                                        value={inviteForm.role}
-                                        onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })}
-                                        required
-                                    >
-                                        <option value="Utilisateur">Utilisateur</option>
-                                        <option value="Administrateur">Administrateur</option>
-                                        <option value="Gestionnaire">Gestionnaire</option>
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm bg-white"
+                                            value={inviteForm.role}
+                                            onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })}
+                                            required
+                                        >
+                                            <option value="Utilisateur">Utilisateur</option>
+                                            <option value="Administrateur">Administrateur</option>
+                                            <option value="Gestionnaire">Gestionnaire</option>
+                                        </select>
+                                        <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    </div>
                                 </div>
 
                                 {/* Permissions Section */}
@@ -857,20 +872,20 @@ export default function UserPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-end gap-3 pt-4">
+                                <div className="flex items-center justify-end gap-3 pt-4 border-t">
                                     <button
                                         type="button"
                                         onClick={closeInvite}
-                                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                                        className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
                                     >
                                         Annuler
                                     </button>
                                     <button
                                         type="submit"
-                                        className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 text-white rounded-lg shadow hover:bg-emerald-800 transition-colors"
+                                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg shadow-lg hover:from-emerald-700 hover:to-emerald-800 transition-all transform hover:scale-105 font-medium"
                                     >
                                         <EnvelopeIcon className="w-5 h-5" />
-                                        <span className="font-medium">Envoyer une invitation</span>
+                                        <span>Envoyer une invitation</span>
                                     </button>
                                 </div>
                             </form>
@@ -880,23 +895,23 @@ export default function UserPage() {
 
                 {/* View User Modal */}
                 {isViewOpen && selectedUser && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
-                            <div className="p-6 border-b">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 border border-gray-200">
+                            <div className="bg-gradient-to-r from-purple-600 to-purple-700 p-6 rounded-t-xl">
                                 <div className="flex items-center justify-between">
-                                    <h2 className="text-2xl font-bold">Détails de l'utilisateur</h2>
-                                    <button onClick={closeView} className="text-gray-400 hover:text-gray-600">
+                                    <h2 className="text-2xl font-bold text-white">Détails de l'utilisateur</h2>
+                                    <button onClick={closeView} className="text-white hover:text-gray-200 transition-colors">
                                         <XMarkIcon className="w-6 h-6" />
                                     </button>
                                 </div>
                             </div>
                             <div className="p-6 space-y-4">
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="h-16 w-16 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xl">
+                                <div className="flex items-center gap-4 mb-6 pb-6 border-b">
+                                    <div className="h-20 w-20 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg">
                                         {getUserInitials(selectedUser.name)}
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-bold text-gray-900">{selectedUser.name}</h3>
+                                        <h3 className="text-2xl font-bold text-gray-900">{selectedUser.name}</h3>
                                         <p className="text-gray-600">{selectedUser.email}</p>
                                     </div>
                                 </div>
@@ -947,12 +962,12 @@ export default function UserPage() {
 
                 {/* Edit User Modal */}
                 {isEditOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-                            <div className="p-6 border-b">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto border border-gray-200">
+                            <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 p-6 rounded-t-xl">
                                 <div className="flex items-center justify-between">
-                                    <h2 className="text-2xl font-bold">Modifier l'utilisateur</h2>
-                                    <button onClick={closeEdit} className="text-gray-400 hover:text-gray-600">
+                                    <h2 className="text-2xl font-bold text-white">Modifier l'utilisateur</h2>
+                                    <button onClick={closeEdit} className="text-white hover:text-gray-200 transition-colors">
                                         <XMarkIcon className="w-6 h-6" />
                                     </button>
                                 </div>
@@ -999,30 +1014,36 @@ export default function UserPage() {
                                         <label className="text-sm font-semibold mb-2 block">
                                             Rôle <span className="text-red-500">*</span>
                                         </label>
-                                        <select
-                                            className="w-full border rounded-lg px-3 py-2"
-                                            value={editForm.role}
-                                            onChange={e => setEditForm({ ...editForm, role: e.target.value })}
-                                            required
-                                        >
-                                            <option value="Utilisateur">Utilisateur</option>
-                                            <option value="Administrateur">Administrateur</option>
-                                            <option value="Gestionnaire">Gestionnaire</option>
-                                        </select>
+                                        <div className="relative">
+                                            <select
+                                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm bg-white"
+                                                value={editForm.role}
+                                                onChange={e => setEditForm({ ...editForm, role: e.target.value })}
+                                                required
+                                            >
+                                                <option value="Utilisateur">Utilisateur</option>
+                                                <option value="Administrateur">Administrateur</option>
+                                                <option value="Gestionnaire">Gestionnaire</option>
+                                            </select>
+                                            <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="text-sm font-semibold mb-2 block">
                                             Statut <span className="text-red-500">*</span>
                                         </label>
-                                        <select
-                                            className="w-full border rounded-lg px-3 py-2"
-                                            value={editForm.status}
-                                            onChange={e => setEditForm({ ...editForm, status: e.target.value })}
-                                            required
-                                        >
-                                            <option value="Actif">Actif</option>
-                                            <option value="Inactif">Inactif</option>
-                                        </select>
+                                        <div className="relative">
+                                            <select
+                                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm bg-white"
+                                                value={editForm.status}
+                                                onChange={e => setEditForm({ ...editForm, status: e.target.value })}
+                                                required
+                                            >
+                                                <option value="Actif">Actif</option>
+                                                <option value="Inactif">Inactif</option>
+                                            </select>
+                                            <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1048,20 +1069,20 @@ export default function UserPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-end gap-3 pt-4">
+                                <div className="flex items-center justify-end gap-3 pt-4 border-t">
                                     <button
                                         type="button"
                                         onClick={closeEdit}
-                                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                                        className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
                                     >
                                         Annuler
                                     </button>
                                     <button
                                         type="submit"
-                                        className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 text-white rounded-lg shadow hover:bg-emerald-800 transition-colors"
+                                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg shadow-lg hover:from-emerald-700 hover:to-emerald-800 transition-all transform hover:scale-105 font-medium"
                                     >
                                         <PencilIcon className="w-5 h-5" />
-                                        <span className="font-medium">Enregistrer</span>
+                                        <span>Enregistrer</span>
                                     </button>
                                 </div>
                             </form>
@@ -1071,27 +1092,30 @@ export default function UserPage() {
 
                 {/* Delete User Modal */}
                 {isDeleteOpen && selectedUser && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-                            <div className="p-6">
-                                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mx-auto mb-4">
-                                    <TrashIcon className="w-8 h-8 text-red-600" />
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 border border-gray-200">
+                            <div className="bg-gradient-to-r from-red-600 to-red-700 p-6 rounded-t-xl">
+                                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm mx-auto mb-4">
+                                    <TrashIcon className="w-8 h-8 text-white" />
                                 </div>
-                                <h2 className="text-2xl font-bold text-center mb-2">Supprimer l'utilisateur</h2>
+                            </div>
+                            <div className="p-6">
+                                <h2 className="text-2xl font-bold text-center mb-2 text-gray-900">Supprimer l'utilisateur</h2>
                                 <p className="text-gray-600 text-center mb-6">
-                                    Êtes-vous sûr de vouloir supprimer <span className="font-semibold">{selectedUser.name}</span> ({selectedUser.email}) ?
-                                    Cette action est irréversible.
+                                    Êtes-vous sûr de vouloir supprimer <span className="font-semibold text-gray-900">{selectedUser.name}</span> ({selectedUser.email}) ?
+                                    <br />
+                                    <span className="text-red-600 font-medium">Cette action est irréversible.</span>
                                 </p>
                                 <div className="flex items-center justify-end gap-3">
                                     <button
                                         onClick={closeDelete}
-                                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                                        className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
                                     >
                                         Annuler
                                     </button>
                                     <button
                                         onClick={deleteUser}
-                                        className="px-6 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition-colors font-medium"
+                                        className="px-6 py-2.5 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700 transition-all transform hover:scale-105 font-medium"
                                     >
                                         Supprimer
                                     </button>
@@ -1103,22 +1127,24 @@ export default function UserPage() {
 
                 {/* Success Modal */}
                 {showSuccessModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-                            <div className="p-6 text-center">
-                                <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                                    <CheckCircleIcon className="w-10 h-10 text-green-600" />
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 border border-gray-200">
+                            <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 p-6 rounded-t-xl">
+                                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm mx-auto mb-4">
+                                    <CheckCircleIcon className="w-10 h-10 text-white" />
                                 </div>
-                                <h2 className="text-2xl font-bold mb-2">Invitation envoyée !</h2>
+                            </div>
+                            <div className="p-6 text-center">
+                                <h2 className="text-2xl font-bold mb-2 text-gray-900">Invitation envoyée !</h2>
                                 <p className="text-gray-600 mb-1">
-                                    Un email d'invitation a été envoyé à <span className="font-semibold">{invitedEmail}</span>
+                                    Un email d'invitation a été envoyé à <span className="font-semibold text-gray-900">{invitedEmail}</span>
                                 </p>
                                 <p className="text-gray-600 mb-6">
                                     L'utilisateur recevra un lien pour activer son compte et définir son mot de passe.
                                 </p>
                                 <button
                                     onClick={() => setShowSuccessModal(false)}
-                                    className="w-full px-6 py-3 bg-emerald-700 text-white rounded-lg shadow hover:bg-emerald-800 transition-colors font-medium"
+                                    className="w-full px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg shadow-lg hover:from-emerald-700 hover:to-emerald-800 transition-all transform hover:scale-105 font-medium"
                                 >
                                     Fermer
                                 </button>

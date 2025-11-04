@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
-import { BellIcon, ExclamationTriangleIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { useSettings } from '../contexts/SettingsContext';
+import { BellIcon, ExclamationTriangleIcon, CheckIcon, XMarkIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api';
 
 type Product = {
@@ -27,6 +28,7 @@ function getStatusLabel(p: { quantity: number; critical_level: number }): 'Norma
 }
 
 export default function AlertsPage() {
+    const { settings } = useSettings();
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -127,84 +129,106 @@ export default function AlertsPage() {
     const criticalAlerts = unreadAlerts.filter(a => a.type === 'critical');
     const lowAlerts = unreadAlerts.filter(a => a.type === 'low');
 
+    const formatCurrency = useMemo(() => {
+        const localeMap: { [key: string]: string } = {
+            'fr': 'fr-FR',
+            'en': 'en-US',
+            'es': 'es-ES'
+        };
+        const locale = localeMap[settings.language] || 'fr-FR';
+        const currency = settings.defaultCurrency;
+
+        return (value: number) => {
+            return new Intl.NumberFormat(locale, { style: 'currency', currency: currency }).format(value);
+        };
+    }, [settings.language, settings.defaultCurrency]);
+
     return (
         <Layout>
-            <div className="p-7 space-y-9">
-                {/* Top header bar */}
+            <div className="pt-24 px-7 pb-7 space-y-6">
                 <TopBar />
 
-                {/* Page header */}
-                <div>
-                    <h1 className="text-4xl font-bold mb-2">Alertes</h1>
-                    <p className="text-gray-500">Gérez les alertes de stock et les notifications</p>
+                {/* Header avec gradient */}
+                <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-xl shadow-lg p-8 text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-4xl font-bold mb-2">Alertes</h1>
+                            <p className="text-orange-100">Gérez les alertes de stock et les notifications</p>
+                        </div>
+                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                            <BellIcon className="w-8 h-8 text-white" />
+                        </div>
+                    </div>
                 </div>
 
                 {error && (
-                    <div className="bg-red-50 text-red-700 border border-red-200 px-4 py-3 rounded-lg flex items-center justify-between">
-                        <span>{error}</span>
-                        <button type="button" onClick={() => setError('')} className="ml-4 p-1 rounded-full hover:bg-red-100 text-red-700 hover:text-red-900 transition-colors">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                    <div className="bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 text-red-700 dark:text-red-400 border-l-4 border-red-500 dark:border-red-400 px-6 py-4 rounded-lg shadow-md flex items-center justify-between">
+                        <span className="font-medium">{error}</span>
+                        <button type="button" onClick={() => setError('')} className="ml-4 p-1 rounded-full hover:bg-red-200 dark:hover:bg-red-900/30 text-red-700 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors">
+                            <XMarkIcon className="w-5 h-5" />
                         </button>
                     </div>
                 )}
 
                 {loading ? (
-                    <div className="bg-white border rounded-lg shadow-md p-6">
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-6">
                         <div className="flex items-center justify-center py-12">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 dark:border-orange-400"></div>
                         </div>
                     </div>
                 ) : alerts.length === 0 ? (
-                    <div className="bg-white border rounded-lg shadow-md p-6">
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-6">
                         <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <BellIcon className="w-16 h-16 text-gray-300 mb-4" />
-                            <h2 className="text-2xl font-bold text-gray-700 mb-2">Aucune alerte</h2>
-                            <p className="text-gray-500">Tous vos produits sont en stock suffisant.</p>
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/50 dark:to-green-800/50 flex items-center justify-center mb-4">
+                                <BellIcon className="w-10 h-10 text-green-600 dark:text-green-400" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-2">Aucune alerte</h2>
+                            <p className="text-gray-500 dark:text-gray-400">Tous vos produits sont en stock suffisant.</p>
                         </div>
                     </div>
                 ) : (
                     <>
-                        {/* Résumé des alertes */}
+                        {/* Résumé des alertes avec gradients */}
                         <div className="grid grid-cols-2 gap-6">
-                            <div className="bg-white border rounded-lg shadow-sm p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-600 mb-1">Alertes critiques</p>
-                                        <p className="text-3xl font-bold text-red-600">{criticalAlerts.length}</p>
-                                        <p className="text-sm text-gray-500 mt-1">Stock épuisé ou très faible</p>
-                                    </div>
-                                    <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                                        <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
-                                    </div>
+                            <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
+                                <div className="flex items-center justify-between mb-4">
+                                    <ExclamationTriangleIcon className="w-8 h-8 text-red-100" />
+                                    <ArrowTrendingUpIcon className="w-5 h-5 text-red-100" />
                                 </div>
+                                <p className="text-red-100 text-sm font-medium mb-1">Alertes critiques</p>
+                                <p className="text-3xl font-bold mb-1">{criticalAlerts.length}</p>
+                                <p className="text-red-100 text-xs">Stock épuisé ou très faible</p>
                             </div>
 
-                            <div className="bg-white border rounded-lg shadow-sm p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-600 mb-1">Alertes de stock faible</p>
-                                        <p className="text-3xl font-bold text-orange-600">{lowAlerts.length}</p>
-                                        <p className="text-sm text-gray-500 mt-1">Sous le seuil critique</p>
-                                    </div>
-                                    <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
-                                        <BellIcon className="h-6 w-6 text-orange-600" />
-                                    </div>
+                            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
+                                <div className="flex items-center justify-between mb-4">
+                                    <BellIcon className="w-8 h-8 text-orange-100" />
+                                    <ArrowTrendingUpIcon className="w-5 h-5 text-orange-100" />
                                 </div>
+                                <p className="text-orange-100 text-sm font-medium mb-1">Alertes de stock faible</p>
+                                <p className="text-3xl font-bold mb-1">{lowAlerts.length}</p>
+                                <p className="text-orange-100 text-xs">Sous le seuil critique</p>
                             </div>
                         </div>
 
                         {/* Liste des alertes */}
-                        <div className="bg-white border rounded-lg shadow-md p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold">Liste des alertes ({unreadAlerts.length} non lues / {alerts.length} total)</h2>
+                        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-6">
+                            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center">
+                                        <BellIcon className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Liste des alertes</h2>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">{unreadAlerts.length} non lues / {alerts.length} total</p>
+                                    </div>
+                                </div>
                                 {unreadAlerts.length > 0 && (
                                     <button
                                         onClick={markAllAsRead}
-                                        className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg shadow-lg hover:from-emerald-700 hover:to-emerald-800 transition-all transform hover:scale-105 font-medium"
                                     >
-                                        <CheckIcon className="w-4 h-4" />
+                                        <CheckIcon className="w-5 h-5" />
                                         Marquer toutes comme lues
                                     </button>
                                 )}
@@ -216,43 +240,69 @@ export default function AlertsPage() {
                                     return (
                                         <div
                                             key={alert.product.id}
-                                            className={`border rounded-lg p-4 transition-opacity ${getAlertColor(alert.type, isRead)}`}
+                                            className={`border rounded-xl p-6 transition-all transform hover:scale-[1.01] shadow-md ${isRead
+                                                ? 'bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 border-gray-200 dark:border-gray-600 opacity-75'
+                                                : alert.type === 'critical'
+                                                    ? 'bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 border-red-300 dark:border-red-700 shadow-red-100 dark:shadow-red-900/20'
+                                                    : 'bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 border-orange-300 dark:border-orange-700 shadow-orange-100 dark:shadow-orange-900/20'
+                                                }`}
                                         >
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1">
-                                                    <div className="flex items-center gap-3 mb-2">
-                                                        <h3 className={`text-lg font-semibold`}>
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <h3 className={`text-xl font-bold ${isRead ? 'text-gray-600 dark:text-gray-400' : 'text-gray-900 dark:text-white'}`}>
                                                             {alert.product.name}
                                                         </h3>
-                                                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(status)}`}>
+                                                        <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${status === 'Critique'
+                                                            ? 'bg-gradient-to-r from-red-600 to-red-700 text-white'
+                                                            : status === 'Faible'
+                                                                ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white'
+                                                                : 'bg-gradient-to-r from-green-600 to-green-700 text-white'
+                                                            }`}>
                                                             {status}
                                                         </span>
                                                         {isRead && (
-                                                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600">
+                                                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 shadow-sm">
                                                                 <CheckIcon className="w-3 h-3" />
                                                                 Lu
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p className="text-sm mb-2">{alert.message}</p>
-                                                    <div className="flex items-center gap-4 text-sm">
-                                                        <span><strong>Catégorie:</strong> {alert.product.category}</span>
-                                                        <span><strong>Stock actuel:</strong> {alert.product.quantity}</span>
-                                                        <span><strong>Seuil critique:</strong> {alert.product.critical_level}</span>
+                                                    <p className={`text-sm mb-4 font-medium ${isRead ? 'text-gray-600 dark:text-gray-400' : alert.type === 'critical' ? 'text-red-800 dark:text-red-400' : 'text-orange-800 dark:text-orange-400'}`}>
+                                                        {alert.message}
+                                                    </p>
+                                                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
+                                                            <span className="font-semibold text-gray-700 dark:text-gray-300">Catégorie:</span>
+                                                            <span className="text-gray-600 dark:text-gray-400">{alert.product.category}</span>
+                                                        </span>
+                                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
+                                                            <span className="font-semibold text-gray-700 dark:text-gray-300">Stock:</span>
+                                                            <span className={`font-bold ${alert.type === 'critical' ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}`}>{alert.product.quantity}</span>
+                                                        </span>
+                                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
+                                                            <span className="font-semibold text-gray-700 dark:text-gray-300">Seuil:</span>
+                                                            <span className="text-gray-600 dark:text-gray-400">{alert.product.critical_level}</span>
+                                                        </span>
                                                         {alert.product.supplier && (
-                                                            <span><strong>Fournisseur:</strong> {alert.product.supplier}</span>
+                                                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
+                                                                <span className="font-semibold text-gray-700 dark:text-gray-300">Fournisseur:</span>
+                                                                <span className="text-gray-600 dark:text-gray-400">{alert.product.supplier}</span>
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="flex flex-col items-end gap-2">
-                                                    <div className="text-right">
-                                                        <p className="text-lg font-bold">€{Number(alert.product.price).toFixed(2)}</p>
-                                                        <p className="text-xs text-gray-600">Prix unitaire</p>
+                                                <div className="flex flex-col items-end gap-3 ml-6">
+                                                    <div className="text-right px-4 py-3 rounded-lg bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-gray-200 dark:border-gray-600 shadow-sm">
+                                                        <p className={`text-2xl font-bold ${isRead ? 'text-gray-500 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
+                                                            {formatCurrency(Number(alert.product.price))}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Prix unitaire</p>
                                                     </div>
                                                     {!isRead && (
                                                         <button
                                                             onClick={() => markAsRead(alert.product.id)}
-                                                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium"
+                                                            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg shadow-lg hover:from-emerald-700 hover:to-emerald-800 transition-all transform hover:scale-105 text-sm font-medium"
                                                         >
                                                             <CheckIcon className="w-4 h-4" />
                                                             Marquer comme lue

@@ -65,7 +65,7 @@ export default function ActivatePage() {
         }
 
         try {
-            await getJSONPublic(API('/auth/activate'), {
+            const response = await fetch(API('/auth/activate'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -74,10 +74,22 @@ export default function ActivatePage() {
                     password_confirmation: form.password_confirmation,
                 }),
             });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || data.message || 'Erreur lors de l\'activation du compte');
+            }
+
+            // Si un token est retourné, le stocker pour connecter automatiquement l'utilisateur
+            if (data.token) {
+                localStorage.setItem('auth_token', data.token);
+            }
+
             setSuccess(true);
             setTimeout(() => {
                 router.push('/');
-            }, 3000);
+            }, 2000);
         } catch (err: any) {
             setError(err?.message || 'Erreur lors de l\'activation du compte');
         } finally {
@@ -122,7 +134,7 @@ export default function ActivatePage() {
                     </div>
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">Compte activé !</h1>
                     <p className="text-gray-600 mb-6">
-                        Votre compte a été activé avec succès. Vous allez être redirigé vers la page de connexion...
+                        Votre compte a été activé avec succès. Vous allez être redirigé vers le tableau de bord...
                     </p>
                 </div>
             </div>

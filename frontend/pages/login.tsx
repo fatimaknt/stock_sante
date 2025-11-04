@@ -46,7 +46,12 @@ export default function LoginPage() {
                 setError('Erreur lors de la connexion');
             }
         } catch (err: any) {
-            setError(err?.message || 'Email ou mot de passe incorrect');
+            console.error('Erreur de connexion:', err);
+            if (err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch')) {
+                setError('Impossible de se connecter au serveur. Vérifiez que le backend Laravel est démarré sur http://127.0.0.1:8000');
+            } else {
+                setError(err?.message || 'Email ou mot de passe incorrect');
+            }
         } finally {
             setLoading(false);
         }

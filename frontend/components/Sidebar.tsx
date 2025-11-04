@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useSettings } from '../contexts/SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
 import {
     Squares2X2Icon,
     CubeIcon,
@@ -9,22 +11,26 @@ import {
     UserIcon,
     Cog6ToothIcon,
     BellIcon,
+    ChartBarIcon,
 } from '@heroicons/react/24/outline';
 
 export default function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolean; onToggle: () => void }) {
     const router = useRouter();
     const pathname = router.pathname;
+    const { settings } = useSettings();
+    const { hasPermission } = useAuth();
 
     const navItems = [
-        { href: '/', label: 'Dashboard', icon: 'dashboard' },
-        { href: '/products', label: 'Produits', icon: 'cube' },
-        { href: '/receipts', label: 'Réception', icon: 'inbox' },
-        { href: '/stockout', label: 'Sortie', icon: 'arrow-right' },
-        { href: '/inventory', label: 'Inventaire', icon: 'clipboard' },
-        { href: '/alerts', label: 'Alertes', icon: 'bell' },
-        { href: '/user', label: 'Utilisateur', icon: 'user' },
-        { href: '/settings', label: 'Paramètres', icon: 'cog' },
-    ];
+        { href: '/', label: 'Dashboard', icon: 'dashboard', perm: null },
+        { href: '/products', label: 'Produits', icon: 'cube', perm: 'Gestion stock' },
+        { href: '/receipts', label: 'Réception', icon: 'inbox', perm: 'Réceptions' },
+        { href: '/stockout', label: 'Sortie', icon: 'arrow-right', perm: 'Sorties' },
+        { href: '/inventory', label: 'Inventaire', icon: 'clipboard', perm: 'Inventaire' },
+        { href: '/alerts', label: 'Alertes', icon: 'bell', perm: 'Alertes' },
+        { href: '/user', label: 'Utilisateur', icon: 'user', perm: 'Administration' },
+        { href: '/reports', label: 'Rapports', icon: 'chart', perm: 'Rapports' },
+        { href: '/settings', label: 'Paramètres', icon: 'cog', perm: 'Administration' },
+    ].filter(item => !item.perm || hasPermission(item.perm));
 
     const isActive = (href: string) => {
         if (href === '/') return pathname === '/';
@@ -41,8 +47,8 @@ export default function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolea
     );
 
     const getIcon = (iconType: string, isActiveItem: boolean) => {
-        const iconClass = 'w-7 h-7 transition-transform duration-300 hover:scale-110';
-        const colorClass = isActiveItem ? 'text-white' : 'text-gray-700';
+        const iconClass = 'w-7 h-7 transition-transform duration-300 group-hover:scale-110';
+        const colorClass = isActiveItem ? 'text-white' : 'text-gray-700 dark:text-gray-300';
 
         switch (iconType) {
             case 'dashboard':
@@ -61,27 +67,29 @@ export default function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolea
                 return <Cog6ToothIcon className={`${iconClass} ${colorClass}`} />;
             case 'bell':
                 return <BellIcon className={`${iconClass} ${colorClass}`} />;
+            case 'chart':
+                return <ChartBarIcon className={`${iconClass} ${colorClass}`} />;
             default:
                 return null;
         }
     };
 
     return (
-        <aside className={`${isCollapsed ? 'w-16' : 'w-64'} bg-white border-r h-screen fixed left-0 top-0 z-20 transition-all duration-300 ease-in-out overflow-hidden`}>
+        <aside className={`${isCollapsed ? 'w-16' : 'w-64'} bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-screen fixed left-0 top-0 z-20 transition-all duration-300 ease-in-out overflow-hidden`}>
 
             <div className="p-4">
                 {/* Logo StockPro avec icône cube verte */}
                 {!isCollapsed && (
-                    <div className="flex items-center gap-3 mb-6 animate-fade-in">
-                        <div className="animate-bounce-slow">
+                    <div className="flex items-center gap-3 mb-6 animate-fade-in cursor-pointer group/logo">
+                        <div className="animate-bounce-slow group-hover/logo:scale-110 transition-transform duration-300">
                             <LogoCubeIcon />
                         </div>
-                        <h1 className="text-2xl font-bold text-gray-900">StockPro</h1>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white group-hover/logo:text-emerald-600 dark:group-hover/logo:text-emerald-400 transition-colors duration-300">{settings.organizationName}</h1>
                     </div>
                 )}
                 {isCollapsed && (
-                    <div className="flex justify-center mb-6">
-                        <div className="animate-bounce-slow">
+                    <div className="flex justify-center mb-6 cursor-pointer group/logo">
+                        <div className="animate-bounce-slow group-hover/logo:scale-110 transition-transform duration-300">
                             <LogoCubeIcon />
                         </div>
                     </div>
@@ -94,14 +102,14 @@ export default function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolea
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`group block ${isCollapsed ? 'px-2 py-2 justify-center' : 'px-3 py-2.5'} rounded-lg flex items-center gap-3 transition-all duration-200 ${active
-                                    ? 'bg-emerald-600 text-white shadow-md transform scale-105'
-                                    : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-700'
+                                className={`group block ${isCollapsed ? 'px-2 py-2 justify-center' : 'px-3 py-2.5'} rounded-lg flex items-center gap-3 transition-all duration-300 cursor-pointer ${active
+                                    ? 'bg-emerald-600 dark:bg-emerald-700 text-white shadow-lg scale-105 border-l-4 border-emerald-800 dark:border-emerald-600'
+                                    : 'text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-gray-700 hover:text-emerald-700 dark:hover:text-emerald-400 hover:scale-105 hover:shadow-md hover:border-l-4 hover:border-emerald-300 dark:hover:border-emerald-500'
                                     }`}
                             >
                                 {getIcon(item.icon, active)}
                                 {!isCollapsed && (
-                                    <span className={`font-medium transition-colors duration-200 ${active ? 'text-white' : 'group-hover:text-emerald-700'}`}>
+                                    <span className={`font-medium transition-colors duration-300 ${active ? 'text-white' : 'group-hover:text-emerald-700 dark:group-hover:text-emerald-400'}`}>
                                         {item.label}
                                     </span>
                                 )}

@@ -5,7 +5,7 @@ import { useSidebar } from '../contexts/SidebarContext';
 import { API, getJSON } from '../utils/api';
 
 export default function TopBar() {
-    const { toggle } = useSidebar();
+    const { toggle, isCollapsed } = useSidebar();
     const router = useRouter();
     const [notifications, setNotifications] = useState(0);
     const [userEmail, setUserEmail] = useState<string>('');
@@ -105,9 +105,9 @@ export default function TopBar() {
     };
 
     return (
-        <div className="bg-white border shadow-sm rounded-md px-8 py-9 flex items-center justify-between">
+        <div className={`fixed top-0 right-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg px-8 py-4 flex items-center justify-between backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 transition-all duration-300 ease-in-out ${isCollapsed ? 'left-16' : 'left-64'}`}>
             <div className="flex items-center gap-3">
-                <div
+                <button
                     onClick={toggle}
                     className="relative flex items-center gap-2 cursor-pointer group"
                     role="button"
@@ -115,61 +115,61 @@ export default function TopBar() {
                     aria-label="Toggle sidebar"
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
                 >
-                    <div className="h-10 w-14 rounded-md flex items-center justify-center text-gray-600 hover:bg-emerald-50 transition-colors duration-200">
-                        <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" stroke="currentColor">
+                    <div className="h-10 w-12 rounded-lg flex items-center justify-center text-gray-600 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 transition-all duration-200 hover:shadow-md group-hover:text-emerald-600">
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor">
                             <rect x="3" y="6" width="18" height="12" rx="1" stroke="currentColor" fill="none" />
                             <line x1="10" y1="6" x2="10" y2="18" stroke="currentColor" />
                         </svg>
                     </div>
-                    <div className="h-10 w-0.5 bg-gray-500 rounded-full"></div>
-                </div>
+                </button>
             </div>
-            <div className="flex items-center gap-4">
+
+            <div className="flex items-center gap-3">
                 {/* Notification Icon */}
                 <div className="relative">
                     <button
                         onClick={() => router.push('/alerts')}
-                        className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                        className="relative p-2.5 text-gray-600 hover:text-emerald-600 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 rounded-lg transition-all duration-200 hover:shadow-md group"
                         aria-label="Alertes"
                     >
-                        <BellIcon className="w-6 h-6" />
+                        <BellIcon className="w-6 h-6 group-hover:scale-110 transition-transform" />
                     </button>
                     {notifications > 0 && (
-                        <span className="absolute top-1 right-1 flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full">
-                            {notifications}
+                        <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold rounded-full shadow-lg animate-pulse">
+                            {notifications > 99 ? '99+' : notifications}
                         </span>
                     )}
                 </div>
 
                 {/* Divider */}
-                <div className="h-6 w-px bg-gray-300"></div>
+                <div className="h-8 w-px bg-gradient-to-b from-gray-200 via-gray-300 to-gray-200"></div>
 
                 {/* Profile Icon with Dropdown */}
                 <div className="relative" ref={profileRef}>
                     <button
                         onClick={() => setIsProfileOpen(!isProfileOpen)}
-                        className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                        className="p-2.5 text-gray-600 hover:text-emerald-600 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 rounded-lg transition-all duration-200 hover:shadow-md group"
                         aria-label="Profil"
                     >
-                        <UserCircleIcon className="w-6 h-6" />
+                        <UserCircleIcon className="w-6 h-6 group-hover:scale-110 transition-transform" />
                     </button>
 
                     {/* Profile Dropdown Menu */}
                     {isProfileOpen && (
-                        <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                            {/* User Email */}
-                            <div className="px-4 py-3 border-b border-gray-200">
-                                <p className="text-sm font-medium text-gray-900">Profil</p>
-                                <p className="text-sm text-gray-600 mt-1">{userEmail || 'Chargement...'}</p>
+                        <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                            {/* User Email Header */}
+                            <div className="px-5 py-4 bg-gradient-to-r from-emerald-50 to-emerald-100 border-b border-gray-200">
+                                <p className="text-sm font-semibold text-gray-900 mb-1">Profil Utilisateur</p>
+                                <p className="text-sm text-gray-600 truncate">{userEmail || 'Chargement...'}</p>
                             </div>
 
                             {/* Logout Button */}
                             <button
                                 onClick={handleLogout}
-                                className="w-full px-4 py-3 flex items-center gap-3 text-left text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                                className="w-full px-5 py-3.5 flex items-center gap-3 text-left text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100 hover:text-red-700 transition-all duration-200 group"
                             >
-                                <ArrowRightOnRectangleIcon className="w-5 h-5" />
-                                <span className="font-medium">Déconnexion</span>
+                                <ArrowRightOnRectangleIcon className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                                <span>Déconnexion</span>
                             </button>
                         </div>
                     )}

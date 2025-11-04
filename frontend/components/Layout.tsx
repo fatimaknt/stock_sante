@@ -6,7 +6,7 @@ import { useSidebar } from '../contexts/SidebarContext';
 export default function Layout({ children }: { children: ReactNode }) {
     const { isCollapsed, toggle } = useSidebar();
     return (
-        <div className="flex min-h-screen bg-gray-50">
+        <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
             <Sidebar isCollapsed={isCollapsed} onToggle={toggle} />
             <main className={`flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
                 {children}

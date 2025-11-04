@@ -71,10 +71,14 @@ class UserActivationController extends Controller
             'status' => 'Actif',
             'permissions' => $invitation->permissions ?? $this->getDefaultPermissions($invitation->role),
             'email_verified_at' => now(),
+            'last_login' => now(),
         ]);
 
         // Marquer l'invitation comme utilisée
         $invitation->update(['used' => true]);
+
+        // Générer un token Sanctum pour connecter automatiquement l'utilisateur
+        $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
             'message' => 'Compte activé avec succès',
@@ -84,6 +88,7 @@ class UserActivationController extends Controller
                 'email' => $user->email,
                 'role' => $user->role,
             ],
+            'token' => $token,
         ], 201);
     }
 

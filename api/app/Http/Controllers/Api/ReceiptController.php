@@ -4,19 +4,29 @@ use App\Http\Controllers\Controller;
 use App\Models\{Receipt,ReceiptItem,Product};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ReceiptController extends Controller
 {
     public function index()
     {
-        return Receipt::withCount('items')->latest()->get()->map(function($r) {
+        return Receipt::with(['items'])->withCount('items')->latest()->get()->map(function($r) {
             return [
                 'id' => $r->id,
+                'ref' => $r->ref,
                 'supplier' => $r->supplier ?? ($r->supplier_id ? 'ID: ' . $r->supplier_id : null),
                 'agent' => $r->agent,
                 'received_at' => $r->received_at,
                 'notes' => $r->notes,
-                'items_count' => $r->items_count ?? 0
+                'items_count' => $r->items_count ?? 0,
+                'items' => $r->items->map(function($item) {
+                    return [
+                        'id' => $item->id,
+                        'product_id' => $item->product_id,
+                        'quantity' => $item->quantity,
+                        'unit_price' => (float)$item->unit_price,
+                    ];
+                })
             ];
         });
     }
@@ -24,6 +34,7 @@ class ReceiptController extends Controller
     public function store(Request $r)
     {
         $v = $r->validate([
+            'ref' => 'nullable|string|unique:receipts',
             'supplier_id' => 'nullable|integer|exists:suppliers,id',
             'supplier' => 'nullable|string',
             'agent' => 'required|string',
@@ -32,6 +43,7 @@ class ReceiptController extends Controller
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|integer|exists:products,id',
             'items.*.product_name' => 'nullable|string',
+            'items.*.product_ref' => 'nullable|string|unique:products,ref',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'nullable|numeric',
         ]);
@@ -47,6 +59,7 @@ class ReceiptController extends Controller
                     if (!$product) {
                         // Créer un nouveau produit si il n'existe pas
                         $product = Product::create([
+                            'ref' => !empty($it['product_ref']) ? trim($it['product_ref']) : null,
                             'name' => trim($it['product_name']),
                             'category' => 'Non catégorisé',
                             'quantity' => 0,
@@ -55,6 +68,14 @@ class ReceiptController extends Controller
                         ]);
                     }
                     $productId = $product->id;
+                }
+
+                // Si un produit existe et qu'une réf est fournie, la définir si absente
+                if ($productId && !empty($it['product_ref'])) {
+                    $p = Product::find($productId);
+                    if ($p && empty($p->ref)) {
+                        $p->update(['ref' => trim($it['product_ref'])]);
+                    }
                 }
 
                 if ($productId) {

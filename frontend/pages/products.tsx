@@ -1,11 +1,13 @@
 import React, { FormEvent, useEffect, useMemo, useState, useRef } from 'react';
-import Layout from '../components/Layout';
-import TopBar from '../components/TopBar';
-import { MagnifyingGlassIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
-import { getJSON, API } from '../utils/api';
+import Layout from '../components/Layout.tsx';
+import TopBar from '../components/TopBar.tsx';
+import { useSettings } from '../contexts/SettingsContext';
+import { MagnifyingGlassIcon, ChevronDownIcon, PlusIcon, XMarkIcon, CubeIcon } from '@heroicons/react/24/outline';
+import { getJSON, API } from '../utils/api.ts';
 
 type Product = {
     id: number;
+    ref?: string | null;
     name: string;
     category: string;
     category_id?: number | null;
@@ -30,6 +32,7 @@ const CATEGORIES_FALLBACK: Category[] = [
 ];
 
 export default function ProductsPage(): JSX.Element {
+    const { settings } = useSettings();
     const [items, setItems] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [error, setError] = useState<string>('');
@@ -39,15 +42,15 @@ export default function ProductsPage(): JSX.Element {
     const [isOpen, setIsOpen] = useState(false);
     const [confirmId, setConfirmId] = useState<number | null>(null);
     const [editing, setEditing] = useState<Product | null>(null);
-    const [form, setForm] = useState({ name: '', category_id: '', quantity: 0, price: 0, critical_level: 10, supplier: '', acquirer: '', beneficiary: '', acquired_at: '' });
+    const [form, setForm] = useState({ ref: '', name: '', category_id: '', quantity: 0, price: 0, critical_level: 10, supplier: '', acquirer: '', beneficiary: '', acquired_at: '' });
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const statusDropdownRef = useRef<HTMLDivElement>(null);
 
     const filtered = useMemo(() => {
         return items.filter(p => {
-            // Filtre par recherche (nom, catégorie)
+            // Filtre par recherche (réf, nom, catégorie)
             const matchesSearch = search === '' ||
-                [p.name, p.category].join(' ').toLowerCase().includes(search.toLowerCase());
+                [p.ref || '', p.name, p.category].join(' ').toLowerCase().includes(search.toLowerCase());
 
             // Filtre par statut
             const statusLabel = getStatusLabel(p);
@@ -99,12 +102,35 @@ export default function ProductsPage(): JSX.Element {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const openCreate = () => { setEditing(null); setForm({ name: '', category_id: '', quantity: 0, price: 0, critical_level: 10, supplier: '', acquirer: '', beneficiary: '', acquired_at: '' }); setIsOpen(true); };
+    const generateUniqueRef = () => {
+        // Générer une référence unique basée sur timestamp + random
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+        return `REF-${timestamp}-${random}`;
+    };
+
+    const openCreate = () => {
+        setEditing(null);
+        setForm({
+            ref: generateUniqueRef(),
+            name: '',
+            category_id: '',
+            quantity: 0,
+            price: 0,
+            critical_level: 10,
+            supplier: '',
+            acquirer: '',
+            beneficiary: '',
+            acquired_at: ''
+        });
+        setIsOpen(true);
+    };
     const openEdit = (p: Product) => {
         const catId = p.category_id || categories.find(c => c.name === p.category)?.id;
         const supplierValue = (p.supplier === null || p.supplier === undefined) ? '' : String(p.supplier);
         setEditing(p);
         setForm({
+            ref: p.ref || '',
             name: p.name || '',
             category_id: catId ? String(catId) : '',
             quantity: p.quantity || 0,
@@ -144,51 +170,73 @@ export default function ProductsPage(): JSX.Element {
         } catch (err: any) { setError(err?.message || 'Erreur'); setSuccess(''); }
     };
 
+    const formatCurrency = useMemo(() => {
+        const localeMap: { [key: string]: string } = {
+            'fr': 'fr-FR',
+            'en': 'en-US',
+            'es': 'es-ES'
+        };
+        const locale = localeMap[settings.language] || 'fr-FR';
+        const currency = settings.defaultCurrency;
+
+        return (value: number) => {
+            return new Intl.NumberFormat(locale, { style: 'currency', currency: currency }).format(value);
+        };
+    }, [settings.language, settings.defaultCurrency]);
+
     return (
         <Layout>
-            <div className="p-7 space-y-9">
-                {/* Top header bar */}
+            <div className="pt-24 px-7 pb-7 space-y-6">
                 <TopBar />
 
-                {/* Page header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-4xl font-bold mb-2">Gestion des Produits</h1>
-                        <p className="text-gray-500">Gérez votre inventaire de produits</p>
+                {/* Header avec gradient */}
+                <div className="bg-gradient-to-r from-emerald-600 to-green-700 rounded-xl shadow-lg p-8 text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-4xl font-bold mb-2">Gestion des Produits</h1>
+                            <p className="text-emerald-100">Gérez votre inventaire de produits</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                <CubeIcon className="w-8 h-8 text-white" />
+                            </div>
+                            <button onClick={openCreate} className="inline-flex items-center gap-2 px-5 py-3 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors backdrop-blur-sm">
+                                <PlusIcon className="w-5 h-5" />
+                                <span className="font-medium">Ajouter</span>
+                            </button>
+                        </div>
                     </div>
-                    <button onClick={openCreate} className="inline-flex items-center gap-2 px-4 py-3 bg-emerald-700 text-white rounded-lg shadow hover:bg-emerald-800">
-                        <span className="inline-flex items-center justify-center h-5 w-5 rounded-full border border-white/60">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5 text-white"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v14M5 12h14" /></svg>
-                        </span>
-                        Ajouter un produit
-                    </button>
                 </div>
 
                 {error && (
-                    <div className="bg-red-50 text-red-700 border border-red-200 px-4 py-3 rounded-lg flex items-center justify-between">
-                        <span>{error}</span>
-                        <button onClick={() => setError('')} className="ml-4 text-red-700 hover:text-red-900">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                    <div className="bg-gradient-to-r from-red-50 to-red-100 text-red-700 border-l-4 border-red-500 px-6 py-4 rounded-lg shadow-md flex items-center justify-between">
+                        <span className="font-medium">{error}</span>
+                        <button onClick={() => setError('')} className="ml-4 p-1 rounded-full hover:bg-red-200 text-red-700 hover:text-red-900 transition-colors">
+                            <XMarkIcon className="w-5 h-5" />
                         </button>
                     </div>
                 )}
                 {success && (
-                    <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-lg flex items-center justify-between">
-                        <span>{success}</span>
-                        <button onClick={() => setSuccess('')} className="ml-4 text-emerald-700 hover:text-emerald-900">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                    <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 border-l-4 border-emerald-500 px-6 py-4 rounded-lg shadow-md flex items-center justify-between">
+                        <span className="font-medium">{success}</span>
+                        <button onClick={() => setSuccess('')} className="ml-4 p-1 rounded-full hover:bg-emerald-200 text-emerald-700 hover:text-emerald-900 transition-colors">
+                            <XMarkIcon className="w-5 h-5" />
                         </button>
                     </div>
                 )}
 
                 {/* Table card */}
-                <div className="bg-white border rounded-lg shadow-md p-6 m-2">
-                    <div className="flex items-center justify-between px-4 py-2 border-b pb-7">
-                        <h3 className="text-2xl font-semibold ">Liste des produits ({filtered.length})</h3>
+                <div className="bg-white border rounded-xl shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                                <CubeIcon className="w-6 h-6 text-emerald-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-bold text-gray-900">Liste des produits</h3>
+                                <p className="text-sm text-gray-500">{filtered.length} produit{filtered.length > 1 ? 's' : ''}</p>
+                            </div>
+                        </div>
                         <div className="flex items-center gap-4">
                             {/* Search Bar */}
                             <div className="relative">
@@ -197,8 +245,8 @@ export default function ProductsPage(): JSX.Element {
                                     type="text"
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
-                                    placeholder="Rechercher par nom ou catégorie..."
-                                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 w-80"
+                                    placeholder="Rechercher par référence, nom ou catégorie..."
+                                    className="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm w-80"
                                 />
                             </div>
 
@@ -209,9 +257,9 @@ export default function ProductsPage(): JSX.Element {
                                         e.stopPropagation();
                                         setIsStatusDropdownOpen(!isStatusDropdownOpen);
                                     }}
-                                    className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between"
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between shadow-sm"
                                 >
-                                    <span>{selectedStatus === 'Tous' ? 'Tous les statuts' : selectedStatus}</span>
+                                    <span className="font-medium">{selectedStatus === 'Tous' ? 'Tous les statuts' : selectedStatus}</span>
                                     <ChevronDownIcon className="h-4 w-4 text-gray-500" />
                                 </button>
                                 {isStatusDropdownOpen && (
@@ -261,111 +309,136 @@ export default function ProductsPage(): JSX.Element {
                             </div>
                         </div>
                     </div>
-                    <table className="min-w-full text-md">
-                        <thead className="bg-gray-50">
-                            <tr>{['Nom', 'Catégorie', 'Quantité', 'Prix', 'Statut', 'Actions'].map((h, i) => (<th key={i} className="text-left px-3 py-5 text-gray-600">{h}</th>))}</tr>
-                        </thead>
-                        <tbody>
-                            {filtered.length === 0 ? (
+                    <div className="border rounded-xl overflow-hidden">
+                        <table className="min-w-full text-md">
+                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                                 <tr>
-                                    <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
-                                        Aucun produit trouvé
-                                    </td>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Réf.</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Nom</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Catégorie</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Quantité</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Prix</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Statut</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Actions</th>
                                 </tr>
-                            ) : (
-                                filtered.map(r => (
-                                    <tr key={r.id} className="border-t hover:bg-emerald-50 transition-colors">
-                                        <td className="px-3 py-4">{r.name}</td>
-                                        <td className="px-3 py-4">{r.category}</td>
-                                        <td className="px-3 py-4">{r.quantity}</td>
-                                        <td className="px-3 py-4">€{Number(r.price).toFixed(2)}</td>
-                                        <td className="px-3 py-4">
-                                            {(() => {
-                                                const label = getStatusLabel(r);
-                                                const color = label === 'Normal' ? 'bg-[#23865A]' : label === 'Faible' ? 'bg-[#F59E0B]' : 'bg-[#DC2626]';
-                                                return (
-                                                    <span className={`inline-flex items-center justify-center px-5 py-1 rounded-full text-[13px] leading-5 font-semibold text-white shadow-sm ring-1 ring-black/5 ${color}`}>
-                                                        {label}
-                                                    </span>
-                                                );
-                                            })()}
-                                        </td>
-                                        <td className="px-3 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <button onClick={() => openEdit(r)} className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white shadow-sm hover:bg-gray-50 transition-colors" aria-label="éditer">
-                                                    <svg className="w-4 h-4 text-slate-700" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                                    </svg>
-                                                </button>
-                                                <button onClick={() => setConfirmId(r.id)} className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-red-200 bg-white shadow-sm hover:bg-red-50 transition-colors" aria-label="supprimer">
-                                                    <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                    </svg>
-                                                </button>
-                                            </div>
+                            </thead>
+                            <tbody>
+                                {filtered.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                                            <CubeIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                                            <p className="font-medium">Aucun produit trouvé</p>
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                ) : (
+                                    filtered.map(r => (
+                                        <tr key={r.id} className="border-t hover:bg-emerald-50 transition-colors">
+                                            <td className="px-6 py-5 text-gray-700 font-mono text-sm">{r.ref || '-'}</td>
+                                            <td className="px-6 py-5 font-semibold text-gray-900">{r.name}</td>
+                                            <td className="px-6 py-5 text-gray-700">{r.category}</td>
+                                            <td className="px-6 py-5 text-gray-700 font-medium">{r.quantity}</td>
+                                            <td className="px-6 py-5 text-gray-700 font-medium">{formatCurrency(Number(r.price))}</td>
+                                            <td className="px-6 py-5">
+                                                {(() => {
+                                                    const label = getStatusLabel(r);
+                                                    const color = label === 'Normal'
+                                                        ? 'bg-gradient-to-r from-green-600 to-green-700'
+                                                        : label === 'Faible'
+                                                            ? 'bg-gradient-to-r from-orange-600 to-orange-700'
+                                                            : 'bg-gradient-to-r from-red-600 to-red-700';
+                                                    return (
+                                                        <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold text-white shadow-sm ${color}`}>
+                                                            {label}
+                                                        </span>
+                                                    );
+                                                })()}
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={() => openEdit(r)} className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all transform hover:scale-110" aria-label="éditer">
+                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                                        </svg>
+                                                    </button>
+                                                    <button onClick={() => setConfirmId(r.id)} className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110" aria-label="supprimer">
+                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 {/* Modal */}
                 {isOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center">
-                        <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
-                        <div className="relative bg-white w-full max-w-2xl rounded-lg shadow-lg p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold">{editing ? 'Modifier un produit' : 'Ajouter un nouveau produit'}</h3>
-                                <button onClick={closeModal} className="p-2 rounded hover:bg-gray-100" aria-label="fermer">✕</button>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+                        <div className="absolute inset-0 bg-black/50" onClick={closeModal} />
+                        <div className="relative bg-white w-full max-w-2xl rounded-xl shadow-2xl border border-gray-200">
+                            <div className="bg-gradient-to-r from-emerald-600 to-green-700 rounded-t-xl p-6">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-2xl font-bold text-white">{editing ? 'Modifier un produit' : 'Ajouter un nouveau produit'}</h3>
+                                    <button onClick={closeModal} className="p-2 rounded-lg hover:bg-white/20 text-white transition-colors" aria-label="fermer">
+                                        <XMarkIcon className="w-6 h-6" />
+                                    </button>
+                                </div>
                             </div>
-                            <form onSubmit={submit} className="grid grid-cols-6 gap-3">
-                                <div className="col-span-6">
-                                    <label className="text-sm">Nom du produit *</label>
-                                    <input className="w-full border rounded-lg px-3 py-2" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ex: Laptop Dell XPS" />
+                            <form onSubmit={submit} className="p-6 grid grid-cols-6 gap-4">
+                                <div className="col-span-3">
+                                    <label className="text-sm font-semibold mb-2 block text-gray-700">Référence <span className="text-red-500">*</span></label>
+                                    <input className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm font-mono" required value={form.ref} onChange={e => setForm({ ...form, ref: e.target.value.toUpperCase() })} placeholder="REF-XXXXX" />
+                                    <p className="text-xs text-gray-500 mt-1">Référence unique du produit</p>
+                                </div>
+                                <div className="col-span-3">
+                                    <label className="text-sm font-semibold mb-2 block text-gray-700">Nom du produit <span className="text-red-500">*</span></label>
+                                    <input className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ex: Laptop Dell XPS" />
                                 </div>
                                 <div className="col-span-6">
-                                    <label className="text-sm">Catégorie *</label>
+                                    <label className="text-sm font-semibold mb-2 block text-gray-700">Catégorie <span className="text-red-500">*</span></label>
                                     <div className="relative">
-                                        <select className="w-full border rounded-lg px-3 py-2 appearance-none" value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })}>
+                                        <select className="w-full border border-gray-300 rounded-lg px-4 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm bg-white" value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })}>
                                             <option value="">Sélectionnez une catégorie</option>
                                             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                         </select>
-                                        <svg className="w-5 h-5 absolute right-3 top-2.5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.96a.75.75 0 011.08 1.04l-4.24 4.53a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" /></svg>
+                                        <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                                     </div>
                                 </div>
                                 <div className="col-span-3">
-                                    <label className="text-sm">Quantité *</label>
-                                    <input type="number" className="w-full border rounded-lg px-3 py-2" value={form.quantity} onChange={e => setForm({ ...form, quantity: Number(e.target.value) })} />
+                                    <label className="text-sm font-semibold mb-2 block text-gray-700">Quantité <span className="text-red-500">*</span></label>
+                                    <input type="number" className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm" value={form.quantity} onChange={e => setForm({ ...form, quantity: Number(e.target.value) })} />
                                 </div>
                                 <div className="col-span-3">
-                                    <label className="text-sm">Prix (€) *</label>
-                                    <input type="number" className="w-full border rounded-lg px-3 py-2" value={form.price} onChange={e => setForm({ ...form, price: Number(e.target.value) })} />
+                                    <label className="text-sm font-semibold mb-2 block text-gray-700">Prix (€) <span className="text-red-500">*</span></label>
+                                    <input type="number" className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm" value={form.price} onChange={e => setForm({ ...form, price: Number(e.target.value) })} />
                                 </div>
                                 <div className="col-span-6">
-                                    <label className="text-sm">Seuil critique</label>
-                                    <input type="number" className="w-full border rounded-lg px-3 py-2" value={form.critical_level} onChange={e => setForm({ ...form, critical_level: Number(e.target.value) })} />
+                                    <label className="text-sm font-semibold mb-2 block text-gray-700">Seuil critique</label>
+                                    <input type="number" className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm" value={form.critical_level} onChange={e => setForm({ ...form, critical_level: Number(e.target.value) })} />
                                 </div>
                                 <div className="col-span-6">
-                                    <label className="text-sm">Fournisseur</label>
-                                    <input className="w-full border rounded-lg px-3 py-2" placeholder="Nom du fournisseur" value={form.supplier} onChange={e => setForm({ ...form, supplier: e.target.value })} />
+                                    <label className="text-sm font-semibold mb-2 block text-gray-700">Fournisseur</label>
+                                    <input className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm" placeholder="Nom du fournisseur" value={form.supplier} onChange={e => setForm({ ...form, supplier: e.target.value })} />
                                 </div>
                                 <div className="col-span-3">
-                                    <label className="text-sm">Acquéreur</label>
-                                    <input className="w-full border rounded-lg px-3 py-2" placeholder="Nom de l'acquéreur" value={form.acquirer} onChange={e => setForm({ ...form, acquirer: e.target.value })} />
+                                    <label className="text-sm font-semibold mb-2 block text-gray-700">Acquéreur</label>
+                                    <input className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm" placeholder="Nom de l'acquéreur" value={form.acquirer} onChange={e => setForm({ ...form, acquirer: e.target.value })} />
                                 </div>
                                 <div className="col-span-3">
-                                    <label className="text-sm">Bénéficiaire</label>
-                                    <input className="w-full border rounded-lg px-3 py-2" placeholder="Nom du bénéficiaire" value={form.beneficiary} onChange={e => setForm({ ...form, beneficiary: e.target.value })} />
+                                    <label className="text-sm font-semibold mb-2 block text-gray-700">Bénéficiaire</label>
+                                    <input className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm" placeholder="Nom du bénéficiaire" value={form.beneficiary} onChange={e => setForm({ ...form, beneficiary: e.target.value })} />
                                 </div>
                                 <div className="col-span-6">
-                                    <label className="text-sm">Date d'acquisition</label>
-                                    <input type="date" className="w-full border rounded-lg px-3 py-2" value={form.acquired_at} onChange={e => setForm({ ...form, acquired_at: e.target.value })} />
+                                    <label className="text-sm font-semibold mb-2 block text-gray-700">Date d'acquisition</label>
+                                    <input type="date" className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm" value={form.acquired_at} onChange={e => setForm({ ...form, acquired_at: e.target.value })} />
                                 </div>
-                                <div className="col-span-6 flex items-center justify-end gap-3 mt-2">
-                                    <button type="button" onClick={closeModal} className="px-4 py-2 rounded-lg border bg-white text-gray-700">Annuler</button>
-                                    <button className="px-4 py-2 rounded-lg bg-emerald-700 text-white">{editing ? 'Mettre à jour' : 'Ajouter'}</button>
+                                <div className="col-span-6 flex items-center justify-end gap-3 mt-4 pt-4 border-t">
+                                    <button type="button" onClick={closeModal} className="px-5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors font-medium">Annuler</button>
+                                    <button className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-green-700 text-white shadow-lg hover:from-emerald-700 hover:to-green-800 transition-all transform hover:scale-105 font-medium">{editing ? 'Mettre à jour' : 'Ajouter'}</button>
                                 </div>
                             </form>
                         </div>
@@ -374,14 +447,23 @@ export default function ProductsPage(): JSX.Element {
 
                 {/* Confirm delete modal */}
                 {confirmId !== null && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center">
-                        <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmId(null)} />
-                        <div className="relative bg-white w-full max-w-md rounded-lg shadow-lg p-6">
-                            <h3 className="text-lg font-semibold mb-2">Confirmer la suppression</h3>
-                            <p className="text-gray-600 mb-4">Voulez-vous vraiment supprimer ce produit ? Cette action est irréversible.</p>
-                            <div className="flex items-center justify-end gap-3">
-                                <button onClick={() => setConfirmId(null)} className="px-4 py-2 rounded-lg border bg-white text-gray-700">Annuler</button>
-                                <button onClick={() => remove(confirmId!)} className="px-4 py-2 rounded-lg bg-red-600 text-white">Supprimer</button>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+                        <div className="absolute inset-0 bg-black/50" onClick={() => setConfirmId(null)} />
+                        <div className="relative bg-white w-full max-w-md rounded-xl shadow-2xl border border-gray-200">
+                            <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-t-xl p-6">
+                                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm mx-auto mb-4">
+                                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div className="p-6">
+                                <h3 className="text-2xl font-bold text-center mb-2 text-gray-900">Confirmer la suppression</h3>
+                                <p className="text-gray-600 mb-6 text-center">Voulez-vous vraiment supprimer ce produit ?<br /><span className="text-red-600 font-medium">Cette action est irréversible.</span></p>
+                                <div className="flex items-center justify-end gap-3">
+                                    <button onClick={() => setConfirmId(null)} className="px-5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors font-medium">Annuler</button>
+                                    <button onClick={() => remove(confirmId!)} className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg hover:from-red-700 hover:to-red-800 transition-all transform hover:scale-105 font-medium">Supprimer</button>
+                                </div>
                             </div>
                         </div>
                     </div>

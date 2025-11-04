@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useSettings } from './SettingsContext';
 
 interface SidebarContextType {
     isCollapsed: boolean;
@@ -8,8 +9,20 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-    const [isCollapsed, setIsCollapsed] = useState(false);
-    const toggle = () => setIsCollapsed(!isCollapsed);
+    const { settings, updateSetting } = useSettings();
+    const [isCollapsed, setIsCollapsed] = useState(settings.sidebarCollapsed);
+
+    // Synchroniser avec les paramètres
+    useEffect(() => {
+        setIsCollapsed(settings.sidebarCollapsed);
+    }, [settings.sidebarCollapsed]);
+
+    const toggle = () => {
+        const newValue = !isCollapsed;
+        setIsCollapsed(newValue);
+        // Mettre à jour les paramètres
+        updateSetting('sidebarCollapsed', newValue);
+    };
 
     return (
         <SidebarContext.Provider value={{ isCollapsed, toggle }}>

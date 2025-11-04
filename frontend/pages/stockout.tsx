@@ -1,7 +1,7 @@
 import React, { useEffect, useState, FormEvent, useRef } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
-import { ArrowRightOnRectangleIcon, PlusIcon, TrashIcon, ArrowTrendingUpIcon, MagnifyingGlassIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ArrowRightOnRectangleIcon, PlusIcon, TrashIcon, ArrowTrendingUpIcon, MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api';
 
 type Product = { id: number; name: string; quantity: number };
@@ -88,7 +88,7 @@ export default function StockOutPage() {
                 .slice(0, 5);
 
             setTopBeneficiaries(top5);
-            setError('');
+            // Ne pas effacer les messages de succès/erreur lors du chargement
         } catch (err: any) {
             console.error('Erreur de chargement:', err);
             setError(err?.message || 'Erreur de chargement');
@@ -139,6 +139,9 @@ export default function StockOutPage() {
 
     const save = async (e: FormEvent) => {
         e.preventDefault();
+        setError('');
+        setSuccess('');
+
         try {
             // Envoyer chaque produit séparément
             const promises = items
@@ -163,9 +166,20 @@ export default function StockOutPage() {
             setExitType('Définitive');
             setNotes('');
             setSuccess('Sortie enregistrée avec succès!');
-            load();
+            setError(''); // S'assurer que l'erreur est effacée
+            await load();
         } catch (err: any) {
-            setError(err?.message || 'Erreur');
+            console.error('Erreur lors de la sauvegarde:', err);
+            // Extraire le message d'erreur
+            let errorMessage = 'Erreur lors de l\'enregistrement de la sortie';
+
+            if (err?.message) {
+                errorMessage = err.message;
+            } else if (typeof err === 'string') {
+                errorMessage = err;
+            }
+
+            setError(errorMessage);
             setSuccess('');
         }
     };
@@ -184,20 +198,20 @@ export default function StockOutPage() {
     const getTypeColor = (type: string | undefined) => {
         switch (type) {
             case 'Définitive':
-                return 'bg-red-500 text-white';
+                return 'bg-gradient-to-r from-red-600 to-red-700 text-white';
             case 'Affectation':
-                return 'bg-purple-500 text-white';
+                return 'bg-gradient-to-r from-purple-600 to-purple-700 text-white';
             case 'Provisoire':
-                return 'bg-blue-500 text-white';
+                return 'bg-gradient-to-r from-blue-600 to-blue-700 text-white';
             default:
-                return 'bg-gray-500 text-white';
+                return 'bg-gradient-to-r from-gray-600 to-gray-700 text-white';
         }
     };
 
     const getStatusColor = (status: string | undefined) => {
-        if (status === 'Retournée') return 'bg-green-500 text-white';
-        if (status === 'Complétée') return 'bg-green-500 text-white';
-        return 'bg-gray-100 text-gray-700';
+        if (status === 'Retournée') return 'bg-gradient-to-r from-green-600 to-green-700 text-white';
+        if (status === 'Complétée') return 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white';
+        return 'bg-gradient-to-r from-gray-600 to-gray-700 text-white';
     };
 
     // Filtrer les sorties
@@ -226,58 +240,65 @@ export default function StockOutPage() {
 
     return (
         <Layout>
-            <div className="p-7 space-y-9">
-                {/* Top header bar */}
+            <div className="pt-24 px-7 pb-7 space-y-6">
                 <TopBar />
 
-                {/* Page header */}
-                <div>
-                    <h1 className="text-4xl font-bold mb-2">Sortie de Stock</h1>
-                    <p className="text-gray-500">Enregistrez les sorties de produits du stock</p>
+                {/* Header avec gradient */}
+                <div className="bg-gradient-to-r from-red-600 to-orange-600 rounded-xl shadow-lg p-8 text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-4xl font-bold mb-2">Sortie de Stock</h1>
+                            <p className="text-red-100">Enregistrez les sorties de produits du stock</p>
+                        </div>
+                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                            <ArrowRightOnRectangleIcon className="w-8 h-8 text-white" />
+                        </div>
+                    </div>
                 </div>
 
                 {error && (
-                    <div className="bg-red-50 text-red-700 border border-red-200 px-4 py-3 rounded-lg flex items-center justify-between">
-                        <span>{error}</span>
-                        <button type="button" onClick={() => setError('')} className="ml-4 p-1 rounded-full hover:bg-red-100 text-red-700 hover:text-red-900 transition-colors">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                    <div className="bg-gradient-to-r from-red-50 to-red-100 text-red-700 border-l-4 border-red-500 px-6 py-4 rounded-lg shadow-md flex items-center justify-between">
+                        <span className="font-medium">{error}</span>
+                        <button type="button" onClick={() => setError('')} className="ml-4 p-1 rounded-full hover:bg-red-200 text-red-700 hover:text-red-900 transition-colors">
+                            <XMarkIcon className="w-5 h-5" />
                         </button>
                     </div>
                 )}
 
                 {success && (
-                    <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-lg flex items-center justify-between">
-                        <span>{success}</span>
-                        <button type="button" onClick={() => setSuccess('')} className="ml-4 p-1 rounded-full hover:bg-emerald-100 text-emerald-700 hover:text-emerald-900 transition-colors">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                    <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 border-l-4 border-emerald-500 px-6 py-4 rounded-lg shadow-md flex items-center justify-between">
+                        <span className="font-medium">{success}</span>
+                        <button type="button" onClick={() => setSuccess('')} className="ml-4 p-1 rounded-full hover:bg-emerald-200 text-emerald-700 hover:text-emerald-900 transition-colors">
+                            <XMarkIcon className="w-5 h-5" />
                         </button>
                     </div>
                 )}
 
                 {/* Top 5 Bénéficiaires */}
                 {topBeneficiaries.length > 0 && (
-                    <div className="bg-white border rounded-lg shadow-md p-6">
-                        <div className="flex items-center gap-3 mb-6">
-                            <ArrowTrendingUpIcon className="w-6 h-6 text-emerald-600" />
-                            <h2 className="text-2xl font-bold">Top 5 Bénéficiaires - Sorties Définitives</h2>
+                    <div className="bg-white border rounded-xl shadow-lg p-6">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b">
+                            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                                <ArrowTrendingUpIcon className="w-6 h-6 text-red-600" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">Top 5 Bénéficiaires</h2>
+                                <p className="text-sm text-gray-500">Sorties définitives</p>
+                            </div>
                         </div>
                         <div className="space-y-3">
                             {topBeneficiaries.map((ben, idx) => (
-                                <div key={idx} className="bg-gray-50 border rounded-lg p-4 flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold">
+                                <div key={idx} className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center text-white font-bold shadow-lg">
                                         {idx + 1}
                                     </div>
                                     <div className="flex-1">
-                                        <div className="font-bold text-gray-900">{ben.beneficiary}</div>
-                                        <div className="text-sm text-gray-500">{ben.productCount} produits • {ben.exitCount} sorties</div>
+                                        <div className="font-bold text-gray-900 text-lg">{ben.beneficiary}</div>
+                                        <div className="text-sm text-gray-600 mt-1">{ben.productCount} produits • {ben.exitCount} sorties</div>
                                     </div>
-                                    <div className="text-right">
-                                        <div className="font-bold text-gray-900">{ben.totalUnits}</div>
-                                        <div className="text-sm text-gray-500">unités</div>
+                                    <div className="text-right px-5 py-3 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200 shadow-sm">
+                                        <div className="font-bold text-gray-900 text-xl">{ben.totalUnits}</div>
+                                        <div className="text-xs text-gray-500 mt-1">unités</div>
                                     </div>
                                 </div>
                             ))}
@@ -286,10 +307,14 @@ export default function StockOutPage() {
                 )}
 
                 {/* Nouvelle sortie form */}
-                <div className="bg-white border rounded-lg shadow-md p-6">
-                    <div className="flex items-center gap-3 mb-6">
-                        <ArrowRightOnRectangleIcon className="w-6 h-6 text-emerald-600" />
-                        <h2 className="text-2xl font-bold">Nouvelle sortie</h2>
+                <div className="bg-white border rounded-xl shadow-lg p-6">
+                    <div className="bg-gradient-to-r from-red-600 to-orange-600 rounded-xl p-6 mb-6 -m-6 -mt-0">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                <ArrowRightOnRectangleIcon className="w-6 h-6 text-white" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-white">Nouvelle sortie</h2>
+                        </div>
                     </div>
 
                     <form onSubmit={save} className="space-y-6">
@@ -300,7 +325,7 @@ export default function StockOutPage() {
                                     Bénéficiaire <span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    className="w-full border rounded-lg px-3 py-2"
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all shadow-sm"
                                     placeholder="Nom du bénéficiaire"
                                     value={beneficiary}
                                     onChange={e => setBeneficiary(e.target.value)}
@@ -313,7 +338,7 @@ export default function StockOutPage() {
                                 </label>
                                 <input
                                     type="date"
-                                    className="w-full border rounded-lg px-3 py-2"
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all shadow-sm"
                                     value={date}
                                     onChange={e => setDate(e.target.value)}
                                     required
@@ -323,16 +348,19 @@ export default function StockOutPage() {
                                 <label className="text-sm font-semibold mb-2 block">
                                     Type de sortie <span className="text-red-500">*</span>
                                 </label>
-                                <select
-                                    className="w-full border rounded-lg px-3 py-2"
-                                    value={exitType}
-                                    onChange={e => setExitType(e.target.value)}
-                                    required
-                                >
-                                    <option value="Définitive">Définitive</option>
-                                    <option value="Affectation">Affectation</option>
-                                    <option value="Provisoire">Provisoire</option>
-                                </select>
+                                <div className="relative">
+                                    <select
+                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all shadow-sm bg-white"
+                                        value={exitType}
+                                        onChange={e => setExitType(e.target.value)}
+                                        required
+                                    >
+                                        <option value="Définitive">Définitive</option>
+                                        <option value="Affectation">Affectation</option>
+                                        <option value="Provisoire">Provisoire</option>
+                                    </select>
+                                    <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                </div>
                             </div>
                         </div>
 
@@ -345,32 +373,35 @@ export default function StockOutPage() {
                                 <button
                                     type="button"
                                     onClick={addLine}
-                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg hover:from-red-700 hover:to-orange-700 transition-all transform hover:scale-105 font-medium"
                                 >
-                                    <PlusIcon className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Ajouter une ligne</span>
+                                    <PlusIcon className="w-5 h-5" />
+                                    <span>Ajouter une ligne</span>
                                 </button>
                             </div>
                             <div className="border rounded-lg overflow-hidden">
                                 <div className="space-y-3 p-4">
                                     {items.map((it, idx) => (
                                         <div key={idx} className="flex items-center gap-3">
-                                            <select
-                                                className="flex-1 border rounded-lg px-3 py-3"
-                                                value={String(it.product_id || '')}
-                                                onChange={e => updateLine(idx, { product_id: e.target.value ? Number(e.target.value) : '' })}
-                                                required
-                                            >
-                                                <option value="">Sélectionner un produit</option>
-                                                {products.map(p => (
-                                                    <option key={p.id} value={p.id} disabled={p.quantity <= 0}>
-                                                        {`${p.name} (Stock: ${p.quantity})`}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            <div className="relative flex-1">
+                                                <select
+                                                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all shadow-sm bg-white"
+                                                    value={String(it.product_id || '')}
+                                                    onChange={e => updateLine(idx, { product_id: e.target.value ? Number(e.target.value) : '' })}
+                                                    required
+                                                >
+                                                    <option value="">Sélectionner un produit</option>
+                                                    {products.map(p => (
+                                                        <option key={p.id} value={p.id} disabled={p.quantity <= 0}>
+                                                            {`${p.name} (Stock: ${p.quantity})`}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                            </div>
                                             <input
                                                 type="number"
-                                                className="w-32 border rounded-lg px-3 py-2"
+                                                className="w-32 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all shadow-sm"
                                                 placeholder="Quantité"
                                                 value={it.quantity || ''}
                                                 onChange={e => updateLine(idx, { quantity: Number(e.target.value) })}
@@ -381,9 +412,9 @@ export default function StockOutPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => removeLine(idx)}
-                                                    className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors"
+                                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
                                                 >
-                                                    <TrashIcon className="w-4 h-4" />
+                                                    <TrashIcon className="w-5 h-5" />
                                                 </button>
                                             )}
                                         </div>
@@ -396,7 +427,7 @@ export default function StockOutPage() {
                         <div>
                             <label className="text-sm font-semibold mb-2 block">Observation</label>
                             <textarea
-                                className="w-full border rounded-lg px-3 py-2"
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all shadow-sm resize-none"
                                 rows={4}
                                 placeholder="Commentaires sur cette sortie..."
                                 value={notes}
@@ -405,20 +436,20 @@ export default function StockOutPage() {
                         </div>
 
                         {/* Bouton Enregistrer */}
-                        <div className="pt-4">
+                        <div className="pt-4 border-t">
                             <button
                                 type="submit"
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 text-white rounded-lg shadow hover:bg-emerald-800 transition-colors"
+                                className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg shadow-lg hover:from-red-700 hover:to-orange-700 transition-all transform hover:scale-105 font-medium"
                             >
                                 <ArrowRightOnRectangleIcon className="w-5 h-5" />
-                                <span className="font-medium">Enregistrer la sortie</span>
+                                <span>Enregistrer la sortie</span>
                             </button>
                         </div>
                     </form>
                 </div>
 
                 {/* Search and Filters */}
-                <div className="bg-white border rounded-lg shadow-sm p-6">
+                <div className="bg-white border rounded-xl shadow-lg p-6">
                     <div className="flex items-center gap-4">
                         {/* Search Bar */}
                         <div className="flex-1 relative">
@@ -428,7 +459,7 @@ export default function StockOutPage() {
                                 placeholder="Rechercher par produit, bénéficiaire ou observation..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
                             />
                         </div>
 
@@ -440,9 +471,9 @@ export default function StockOutPage() {
                                     setIsTypeDropdownOpen(!isTypeDropdownOpen);
                                     setIsStatusDropdownOpen(false);
                                 }}
-                                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between shadow-sm"
                             >
-                                <span>{selectedType === 'Tous' ? 'Tous les types' : selectedType}</span>
+                                <span className="font-medium">{selectedType === 'Tous' ? 'Tous les types' : selectedType}</span>
                                 <ChevronDownIcon className="h-4 w-4 text-gray-500" />
                             </button>
                             {isTypeDropdownOpen && (
@@ -499,9 +530,9 @@ export default function StockOutPage() {
                                     setIsStatusDropdownOpen(!isStatusDropdownOpen);
                                     setIsTypeDropdownOpen(false);
                                 }}
-                                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between shadow-sm"
                             >
-                                <span>{selectedStatus === 'Tous' ? 'Tous les statuts' : selectedStatus}</span>
+                                <span className="font-medium">{selectedStatus === 'Tous' ? 'Tous les statuts' : selectedStatus}</span>
                                 <ChevronDownIcon className="h-4 w-4 text-gray-500" />
                             </button>
                             {isStatusDropdownOpen && (
@@ -556,66 +587,75 @@ export default function StockOutPage() {
                                 type="date"
                                 value={selectedDate}
                                 onChange={(e) => setSelectedDate(e.target.value)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 min-w-[150px]"
+                                className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 min-w-[150px] shadow-sm transition-all"
                             />
                         </div>
                     </div>
                 </div>
 
                 {/* Historique des sorties */}
-                <div className="bg-white border rounded-lg shadow-md p-6">
-                    <h2 className="text-2xl font-bold mb-6">Historique des sorties ({filteredRows.length})</h2>
-                    <div className="border rounded-lg overflow-hidden">
+                <div className="bg-white border rounded-xl shadow-lg p-6">
+                    <div className="flex items-center gap-3 mb-6 pb-4 border-b">
+                        <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                            <ArrowRightOnRectangleIcon className="w-6 h-6 text-red-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900">Historique des sorties</h2>
+                            <p className="text-sm text-gray-500">{filteredRows.length} sortie{filteredRows.length > 1 ? 's' : ''}</p>
+                        </div>
+                    </div>
+                    <div className="border rounded-xl overflow-hidden">
                         <table className="min-w-full text-md">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                                 <tr>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Date</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Produit</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Quantité</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Bénéficiaire</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Type</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Statut</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Observation</th>
-                                    <th className="text-left px-3 py-5 text-gray-600 font-semibold">Actions</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Date</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Produit</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Quantité</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Bénéficiaire</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Type</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Statut</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Observation</th>
+                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredRows.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} className="px-3 py-8 text-center text-gray-500">
-                                            Aucune sortie trouvée
+                                        <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                                            <ArrowRightOnRectangleIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                                            <p className="font-medium">Aucune sortie trouvée</p>
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredRows.map(r => {
                                         const product = products.find(p => p.id === r.product_id);
                                         return (
-                                            <tr key={r.id} className="border-t hover:bg-emerald-50 transition-colors">
-                                                <td className="px-3 py-4">{formatDate(r.movement_date)}</td>
-                                                <td className="px-3 py-4">{product?.name || `Produit #${r.product_id}`}</td>
-                                                <td className="px-3 py-4">{r.quantity}</td>
-                                                <td className="px-3 py-4">{r.beneficiary || 'ND'}</td>
-                                                <td className="px-3 py-4">
+                                            <tr key={r.id} className="border-t hover:bg-red-50 transition-colors">
+                                                <td className="px-6 py-5 font-medium text-gray-700">{formatDate(r.movement_date)}</td>
+                                                <td className="px-6 py-5 font-semibold text-gray-900">{product?.name || `Produit #${r.product_id}`}</td>
+                                                <td className="px-6 py-5 text-gray-700 font-medium">{r.quantity}</td>
+                                                <td className="px-6 py-5 text-gray-700">{r.beneficiary || 'ND'}</td>
+                                                <td className="px-6 py-5">
                                                     {r.exit_type && (
-                                                        <span className={`inline-flex items-center justify-center px-4 py-1 rounded-full text-[13px] leading-5 font-semibold text-white shadow-sm ring-1 ring-black/5 ${getTypeColor(r.exit_type)}`}>
+                                                        <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${getTypeColor(r.exit_type)}`}>
                                                             {r.exit_type}
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-3 py-4">
+                                                <td className="px-6 py-5">
                                                     {r.status && (
-                                                        <span className={`inline-flex items-center justify-center px-4 py-1 rounded-full text-[13px] leading-5 font-semibold shadow-sm ring-1 ring-black/5 ${getStatusColor(r.status) || 'bg-gray-100 text-gray-700'}`}>
+                                                        <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${getStatusColor(r.status)}`}>
                                                             {r.status}
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-3 py-4">{r.notes || '-'}</td>
-                                                <td className="px-3 py-4">
+                                                <td className="px-6 py-5 text-gray-600">{r.notes || '-'}</td>
+                                                <td className="px-6 py-5">
                                                     <button
-                                                        className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors"
+                                                        className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
                                                         aria-label="supprimer"
                                                     >
-                                                        <TrashIcon className="w-4 h-4" />
+                                                        <TrashIcon className="w-5 h-5" />
                                                     </button>
                                                 </td>
                                             </tr>
