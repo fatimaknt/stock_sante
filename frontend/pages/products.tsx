@@ -2,7 +2,7 @@ import React, { FormEvent, useEffect, useMemo, useState, useRef } from 'react';
 import Layout from '../components/Layout.tsx';
 import TopBar from '../components/TopBar.tsx';
 import { useSettings } from '../contexts/SettingsContext';
-import { MagnifyingGlassIcon, ChevronDownIcon, PlusIcon, XMarkIcon, CubeIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ChevronDownIcon, PlusIcon, XMarkIcon, CubeIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api.ts';
 
 type Product = {
@@ -39,12 +39,25 @@ export default function ProductsPage(): JSX.Element {
     const [success, setSuccess] = useState<string>('');
     const [search, setSearch] = useState('');
     const [selectedStatus, setSelectedStatus] = useState<string>('Tous');
+    const [selectedCategory, setSelectedCategory] = useState<string>('');
+    const [selectedDate, setSelectedDate] = useState<string>('');
+    const [selectedAcquirer, setSelectedAcquirer] = useState<string>('');
     const [isOpen, setIsOpen] = useState(false);
     const [confirmId, setConfirmId] = useState<number | null>(null);
     const [editing, setEditing] = useState<Product | null>(null);
     const [form, setForm] = useState({ ref: '', name: '', category_id: '', quantity: 0, price: 0, critical_level: 10, supplier: '', acquirer: '', beneficiary: '', acquired_at: '' });
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const statusDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Récupérer les acquéreurs uniques
+    const uniqueAcquirers = useMemo(() => {
+        const acquirers = items
+            .map(p => p.acquirer)
+            .filter((acq): acq is string => acq !== null && acq !== undefined && acq !== '')
+            .filter((acq, index, self) => self.indexOf(acq) === index)
+            .sort();
+        return acquirers;
+    }, [items]);
 
     const filtered = useMemo(() => {
         return items.filter(p => {
@@ -56,9 +69,18 @@ export default function ProductsPage(): JSX.Element {
             const statusLabel = getStatusLabel(p);
             const matchesStatus = selectedStatus === 'Tous' || statusLabel === selectedStatus;
 
-            return matchesSearch && matchesStatus;
+            // Filtre par catégorie
+            const matchesCategory = selectedCategory === '' || p.category === selectedCategory || String(p.category_id) === selectedCategory;
+
+            // Filtre par date
+            const matchesDate = selectedDate === '' || (p.acquired_at && p.acquired_at.split('T')[0] === selectedDate);
+
+            // Filtre par acquéreur
+            const matchesAcquirer = selectedAcquirer === '' || p.acquirer === selectedAcquirer;
+
+            return matchesSearch && matchesStatus && matchesCategory && matchesDate && matchesAcquirer;
         });
-    }, [items, search, selectedStatus]);
+    }, [items, search, selectedStatus, selectedCategory, selectedDate, selectedAcquirer]);
 
     const load = async () => {
         try {
@@ -184,6 +206,106 @@ export default function ProductsPage(): JSX.Element {
         };
     }, [settings.language, settings.defaultCurrency]);
 
+    // Fonction pour préparer les données d'un produit pour Excel
+    const prepareProductData = (product: Product) => {
+        const row: any = {
+            'Référence': product.ref || '-',
+            'Nom': product.name,
+            'Catégorie': product.category,
+            'Quantité': product.quantity,
+            'Prix': product.price,
+            'Statut': getStatusLabel(product)
+        };
+
+        // Ajouter les champs optionnels s'ils existent
+        if (product.supplier) row['Fournisseur'] = product.supplier;
+        if (product.acquirer) row['Acquéreur'] = product.acquirer;
+        if (product.beneficiary) row['Bénéficiaire'] = product.beneficiary;
+        if (product.acquired_at) {
+            row['Date d\'acquisition'] = new Date(product.acquired_at).toLocaleDateString('fr-FR');
+        }
+
+        return row;
+    };
+
+    // Fonction pour exporter un seul produit en Excel
+    const exportSingleProductExcel = async (product: Product) => {
+        try {
+            const XLSX = await import('xlsx');
+
+            // Préparer les données pour l'export
+            const data = [prepareProductData(product)];
+
+            // Créer le workbook
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(data);
+
+            // Ajuster la largeur des colonnes
+            const colWidths = [
+                { wch: 15 }, // Référence
+                { wch: 30 }, // Nom
+                { wch: 25 }, // Catégorie
+                { wch: 10 }, // Quantité
+                { wch: 12 }, // Prix
+                { wch: 12 }  // Statut
+            ];
+            ws['!cols'] = colWidths;
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Produit');
+
+            // Générer le nom du fichier
+            const dateStr = new Date().toISOString().split('T')[0];
+            const filename = `produit_${product.id}_${dateStr}.xlsx`;
+
+            // Télécharger le fichier
+            XLSX.writeFile(wb, filename);
+            setSuccess('Export Excel réussi !');
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err: any) {
+            console.error('Erreur lors de l\'export Excel:', err);
+            setError('Erreur lors de l\'export Excel');
+        }
+    };
+
+    // Fonction pour exporter tous les produits filtrés en Excel
+    const exportAllProductsExcel = async () => {
+        try {
+            const XLSX = await import('xlsx');
+
+            // Préparer les données pour l'export
+            const data = filtered.map(product => prepareProductData(product));
+
+            // Créer le workbook
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(data);
+
+            // Ajuster la largeur des colonnes
+            const colWidths = [
+                { wch: 15 }, // Référence
+                { wch: 30 }, // Nom
+                { wch: 25 }, // Catégorie
+                { wch: 10 }, // Quantité
+                { wch: 12 }, // Prix
+                { wch: 12 }  // Statut
+            ];
+            ws['!cols'] = colWidths;
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Produits');
+
+            // Générer le nom du fichier
+            const dateStr = new Date().toISOString().split('T')[0];
+            const filename = `produits_${dateStr}.xlsx`;
+
+            // Télécharger le fichier
+            XLSX.writeFile(wb, filename);
+            setSuccess('Export Excel réussi !');
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err: any) {
+            console.error('Erreur lors de l\'export Excel:', err);
+            setError('Erreur lors de l\'export Excel');
+        }
+    };
+
     return (
         <Layout>
             <div className="pt-24 px-7 pb-7 space-y-6">
@@ -196,14 +318,8 @@ export default function ProductsPage(): JSX.Element {
                             <h1 className="text-4xl font-bold mb-2">Gestion des Produits</h1>
                             <p className="text-emerald-100">Gérez votre inventaire de produits</p>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                <CubeIcon className="w-8 h-8 text-white" />
-                            </div>
-                            <button onClick={openCreate} className="inline-flex items-center gap-2 px-5 py-3 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors backdrop-blur-sm">
-                                <PlusIcon className="w-5 h-5" />
-                                <span className="font-medium">Ajouter</span>
-                            </button>
+                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                            <CubeIcon className="w-8 h-8 text-white" />
                         </div>
                     </div>
                 </div>
@@ -225,6 +341,131 @@ export default function ProductsPage(): JSX.Element {
                     </div>
                 )}
 
+                {/* Search and Filters */}
+                <div className="bg-white border rounded-xl shadow-lg p-6">
+                    <div className="flex items-center gap-4">
+                        {/* Search Bar */}
+                        <div className="flex-1 relative">
+                            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Rechercher par référence, nom ou catégorie..."
+                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm"
+                            />
+                        </div>
+
+                        {/* Status Filter */}
+                        <div className="relative" ref={statusDropdownRef}>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsStatusDropdownOpen(!isStatusDropdownOpen);
+                                }}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between shadow-sm"
+                            >
+                                <span className="font-medium">{selectedStatus === 'Tous' ? 'Tous les statuts' : selectedStatus}</span>
+                                <ChevronDownIcon className="h-4 w-4 text-gray-500" />
+                            </button>
+                            {isStatusDropdownOpen && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedStatus('Tous');
+                                            setIsStatusDropdownOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Tous' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
+                                    >
+                                        Tous les statuts
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedStatus('Normal');
+                                            setIsStatusDropdownOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Normal' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
+                                    >
+                                        Normal
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedStatus('Faible');
+                                            setIsStatusDropdownOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Faible' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
+                                    >
+                                        Faible
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedStatus('Critique');
+                                            setIsStatusDropdownOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Critique' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
+                                    >
+                                        Critique
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Category Filter */}
+                        <div className="relative">
+                            <select
+                                value={selectedCategory}
+                                onChange={(e) => setSelectedCategory(e.target.value)}
+                                className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[180px] shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            >
+                                <option value="">Toutes les catégories</option>
+                                {categories.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                ))}
+                            </select>
+                            <ChevronDownIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                        </div>
+
+                        {/* Date Filter */}
+                        <div className="relative">
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 min-w-[150px]"
+                                placeholder="Filtrer par date"
+                            />
+                            {selectedDate && (
+                                <button
+                                    onClick={() => setSelectedDate('')}
+                                    className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
+                                    title="Effacer le filtre de date"
+                                >
+                                    <XMarkIcon className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Acquirer Filter */}
+                        <div className="relative">
+                            <select
+                                value={selectedAcquirer}
+                                onChange={(e) => setSelectedAcquirer(e.target.value)}
+                                className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[180px] shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            >
+                                <option value="">Tous les acquéreurs</option>
+                                {uniqueAcquirers.map(acq => (
+                                    <option key={acq} value={acq}>{acq}</option>
+                                ))}
+                            </select>
+                            <ChevronDownIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                        </div>
+                    </div>
+                </div>
+
                 {/* Table card */}
                 <div className="bg-white border rounded-xl shadow-lg p-6">
                     <div className="flex items-center justify-between mb-6 pb-4 border-b">
@@ -237,89 +478,28 @@ export default function ProductsPage(): JSX.Element {
                                 <p className="text-sm text-gray-500">{filtered.length} produit{filtered.length > 1 ? 's' : ''}</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            {/* Search Bar */}
-                            <div className="relative">
-                                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                <input
-                                    type="text"
-                                    value={search}
-                                    onChange={e => setSearch(e.target.value)}
-                                    placeholder="Rechercher par référence, nom ou catégorie..."
-                                    className="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm w-80"
-                                />
-                            </div>
-
-                            {/* Status Filter */}
-                            <div className="relative" ref={statusDropdownRef}>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setIsStatusDropdownOpen(!isStatusDropdownOpen);
-                                    }}
-                                    className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[150px] justify-between shadow-sm"
-                                >
-                                    <span className="font-medium">{selectedStatus === 'Tous' ? 'Tous les statuts' : selectedStatus}</span>
-                                    <ChevronDownIcon className="h-4 w-4 text-gray-500" />
-                                </button>
-                                {isStatusDropdownOpen && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedStatus('Tous');
-                                                setIsStatusDropdownOpen(false);
-                                            }}
-                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Tous' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
-                                        >
-                                            Tous les statuts
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedStatus('Normal');
-                                                setIsStatusDropdownOpen(false);
-                                            }}
-                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Normal' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
-                                        >
-                                            Normal
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedStatus('Faible');
-                                                setIsStatusDropdownOpen(false);
-                                            }}
-                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Faible' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
-                                        >
-                                            Faible
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedStatus('Critique');
-                                                setIsStatusDropdownOpen(false);
-                                            }}
-                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Critique' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
-                                        >
-                                            Critique
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                        {filtered.length > 0 && (
+                            <button
+                                onClick={exportAllProductsExcel}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg shadow-lg hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 font-medium"
+                                title="Exporter tous les produits filtrés en Excel"
+                            >
+                                <DocumentArrowDownIcon className="w-5 h-5" />
+                                <span>Exporter tout en Excel</span>
+                            </button>
+                        )}
                     </div>
                     <div className="border rounded-xl overflow-hidden">
                         <table className="min-w-full text-md">
-                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                            <thead className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-b-2 border-emerald-200">
                                 <tr>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Réf.</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Nom</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Catégorie</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Quantité</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Prix</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Statut</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Actions</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Réf.</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Nom</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Catégorie</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Quantité</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Prix</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Statut</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -355,10 +535,13 @@ export default function ProductsPage(): JSX.Element {
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-2">
-                                                    <button onClick={() => openEdit(r)} className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all transform hover:scale-110" aria-label="éditer">
-                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                                        </svg>
+                                                    <button
+                                                        onClick={() => exportSingleProductExcel(r)}
+                                                        className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-all transform hover:scale-110"
+                                                        aria-label="exporter ce produit en Excel"
+                                                        title="Exporter ce produit en Excel"
+                                                    >
+                                                        <DocumentArrowDownIcon className="w-5 h-5" />
                                                     </button>
                                                     <button onClick={() => setConfirmId(r.id)} className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110" aria-label="supprimer">
                                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">

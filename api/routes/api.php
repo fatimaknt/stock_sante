@@ -18,6 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Réceptions
     Route::get('receipts', [ReceiptController::class,'index']);
     Route::post('receipts', [ReceiptController::class,'store']);
+    Route::put('receipts/{receipt}', [ReceiptController::class,'update']);
+    Route::delete('receipts/{receipt}', [ReceiptController::class,'destroy']);
 
     // Sorties
     Route::get('stockouts', [StockOutController::class,'index']);

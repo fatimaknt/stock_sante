@@ -1,8 +1,9 @@
 import React, { useEffect, useState, FormEvent, useRef } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
-import { ArrowRightOnRectangleIcon, PlusIcon, TrashIcon, ArrowTrendingUpIcon, MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowRightOnRectangleIcon, PlusIcon, TrashIcon, ArrowTrendingUpIcon, MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api';
+import { jsPDF } from 'jspdf';
 
 type Product = { id: number; name: string; quantity: number };
 type StockOutRow = {
@@ -238,6 +239,251 @@ export default function StockOutPage() {
         return matchesSearch && matchesType && matchesStatus && matchesDate;
     });
 
+    // Fonction pour exporter une seule sortie en PDF
+    const exportSingleStockOutPDF = async (row: StockOutRow) => {
+        try {
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 20;
+            let yPos = margin;
+
+            // En-tête
+            doc.setFontSize(18);
+            doc.setTextColor(220, 38, 38); // red-600
+            doc.text('Détail de Sortie de Stock', margin, yPos);
+            yPos += 12;
+
+            const product = products.find(p => p.id === row.product_id);
+            const productName = product?.name || `Produit #${row.product_id}`;
+            const status = row.status || 'Aucun';
+
+            // Tableau des informations
+            const tableStartY = yPos;
+            const rowHeight = 8;
+            const labelWidth = 50;
+            const valueWidth = pageWidth - margin - labelWidth - 10;
+
+            // En-tête du tableau
+            doc.setFillColor(220, 38, 38); // red-600
+            doc.rect(margin, tableStartY, pageWidth - 2 * margin, rowHeight, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Information', margin + 5, tableStartY + 5);
+            doc.text('Valeur', margin + labelWidth + 5, tableStartY + 5);
+
+            yPos = tableStartY + rowHeight;
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+
+            // Lignes du tableau
+            const dataRows = [
+                { label: 'Date', value: formatDate(row.movement_date) },
+                { label: 'Produit', value: productName },
+                { label: 'Quantité', value: String(row.quantity || 0) },
+                { label: 'Bénéficiaire', value: row.beneficiary || 'ND' },
+                { label: 'Type', value: row.exit_type || '-' },
+                { label: 'Statut', value: status }
+            ];
+
+            dataRows.forEach((dataRow, index) => {
+                // Ligne de séparation
+                doc.setDrawColor(200, 200, 200);
+                doc.line(margin, yPos, pageWidth - margin, yPos);
+
+                // Label
+                doc.setFont('helvetica', 'bold');
+                doc.text(dataRow.label + ':', margin + 5, yPos + 5);
+
+                // Valeur
+                doc.setFont('helvetica', 'normal');
+                const valueLines = doc.splitTextToSize(dataRow.value, valueWidth - 10);
+                doc.text(valueLines, margin + labelWidth + 5, yPos + 5);
+
+                yPos += Math.max(rowHeight, valueLines.length * 5);
+            });
+
+            // Observation si présente
+            if (row.notes) {
+                yPos += 5;
+                doc.setDrawColor(200, 200, 200);
+                doc.line(margin, yPos, pageWidth - margin, yPos);
+                yPos += 5;
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.text('Observation:', margin + 5, yPos);
+                yPos += 7;
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                const notesLines = doc.splitTextToSize(row.notes, pageWidth - 2 * margin - 10);
+                doc.text(notesLines, margin + 5, yPos);
+            }
+
+            // Footer
+            doc.setFontSize(8);
+            doc.setTextColor(128, 128, 128);
+            doc.text(
+                `Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`,
+                margin,
+                doc.internal.pageSize.getHeight() - 10
+            );
+
+            // Télécharger le PDF
+            const dateStr = new Date().toISOString().split('T')[0];
+            doc.save(`sortie_${row.id}_${dateStr}.pdf`);
+            setSuccess('Export PDF réussi !');
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err: any) {
+            console.error('Erreur lors de l\'export PDF:', err);
+            setError('Erreur lors de l\'export PDF');
+        }
+    };
+
+    // Fonction pour exporter toutes les sorties filtrées en PDF
+    const exportStockOutPDF = async () => {
+        try {
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 20;
+            let yPos = margin;
+
+            // En-tête
+            doc.setFontSize(18);
+            doc.setTextColor(220, 38, 38); // red-600
+            doc.text('Rapport des Sorties de Stock', margin, yPos);
+            yPos += 10;
+
+            // Informations de filtre
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            const filters: string[] = [];
+            if (selectedType !== 'Tous') filters.push(`Type: ${selectedType}`);
+            if (selectedStatus !== 'Tous') filters.push(`Statut: ${selectedStatus}`);
+            if (selectedDate) filters.push(`Date: ${formatDate(selectedDate)}`);
+            if (searchQuery) filters.push(`Recherche: ${searchQuery}`);
+
+            if (filters.length > 0) {
+                doc.text(`Filtres appliqués: ${filters.join(' | ')}`, margin, yPos);
+                yPos += 7;
+            }
+
+            doc.text(`Total: ${filteredRows.length} sortie${filteredRows.length > 1 ? 's' : ''}`, margin, yPos);
+            yPos += 10;
+
+            // Tableau des sorties
+            if (filteredRows.length > 0) {
+                // En-tête du tableau
+                doc.setFillColor(220, 38, 38); // red-600
+                doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+
+                let xPos = margin + 5;
+                doc.text('Date', xPos, yPos + 5);
+                xPos += 25;
+                doc.text('Produit', xPos, yPos + 5);
+                xPos += 55;
+                doc.text('Qté', xPos, yPos + 5);
+                xPos += 15;
+                doc.text('Bénéficiaire', xPos, yPos + 5);
+                xPos += 35;
+                doc.text('Type', xPos, yPos + 5);
+                xPos += 25;
+                doc.text('Statut', xPos, yPos + 5);
+
+                yPos += 10;
+                doc.setTextColor(0, 0, 0);
+                doc.setFont('helvetica', 'normal');
+
+                filteredRows.forEach((row, index) => {
+                    // Vérifier si on doit créer une nouvelle page
+                    if (yPos > doc.internal.pageSize.getHeight() - 30) {
+                        doc.addPage();
+                        yPos = margin;
+                    }
+
+                    const product = products.find(p => p.id === row.product_id);
+                    const productName = product?.name || `Produit #${row.product_id}`;
+
+                    // Ligne du tableau
+                    doc.setDrawColor(200, 200, 200);
+                    doc.line(margin, yPos, pageWidth - margin, yPos);
+
+                    xPos = margin + 5;
+                    doc.setFontSize(9);
+                    doc.text(formatDate(row.movement_date), xPos, yPos + 5);
+                    xPos += 25;
+
+                    // Nom du produit (peut être long)
+                    const maxWidth = 55;
+                    const productNameLines = doc.splitTextToSize(productName, maxWidth);
+                    doc.text(productNameLines, xPos, yPos + 5);
+                    const productHeight = productNameLines.length * 5;
+                    xPos += 55;
+
+                    doc.text(String(row.quantity || 0), xPos, yPos + 5);
+                    xPos += 15;
+
+                    const beneficiary = row.beneficiary || 'ND';
+                    const beneficiaryLines = doc.splitTextToSize(beneficiary, 35);
+                    doc.text(beneficiaryLines, xPos, yPos + 5);
+                    xPos += 35;
+
+                    doc.text(row.exit_type || '-', xPos, yPos + 5);
+                    xPos += 25;
+
+                    // Statut - seulement couleur pour "Retournée", pas pour "Complétée"
+                    const status = row.status || 'Aucun';
+                    if (status === 'Retournée') {
+                        // Badge vert uniquement pour "Retournée"
+                        const statusColor = [34, 197, 94]; // green-600
+                        doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+                        const statusWidth = doc.getTextWidth(status) + 4;
+                        doc.roundedRect(xPos, yPos - 2, statusWidth, 6, 1.5, 1.5, 'F');
+                        doc.setTextColor(255, 255, 255);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(8);
+                        doc.text(status, xPos + 2, yPos + 2);
+                        doc.setTextColor(0, 0, 0);
+                        doc.setFont('helvetica', 'normal');
+                    } else {
+                        // Texte simple pour les autres statuts (y compris "Complétée")
+                        doc.setFontSize(9);
+                        doc.text(status, xPos, yPos + 5);
+                    }
+
+                    yPos += Math.max(8, productHeight, beneficiaryLines.length * 5);
+                });
+            }
+
+            // Footer
+            const pageCount = doc.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(128, 128, 128);
+                doc.text(
+                    `Page ${i} sur ${pageCount} - Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`,
+                    margin,
+                    doc.internal.pageSize.getHeight() - 10
+                );
+            }
+
+            // Télécharger le PDF
+            const dateStr = new Date().toISOString().split('T')[0];
+            doc.save(`sorties_${dateStr}.pdf`);
+            setSuccess('Export PDF réussi !');
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err: any) {
+            console.error('Erreur lors de l\'export PDF:', err);
+            setError('Erreur lors de l\'export PDF');
+        }
+    };
+
     return (
         <Layout>
             <div className="pt-24 px-7 pb-7 space-y-6">
@@ -271,38 +517,6 @@ export default function StockOutPage() {
                         <button type="button" onClick={() => setSuccess('')} className="ml-4 p-1 rounded-full hover:bg-emerald-200 text-emerald-700 hover:text-emerald-900 transition-colors">
                             <XMarkIcon className="w-5 h-5" />
                         </button>
-                    </div>
-                )}
-
-                {/* Top 5 Bénéficiaires */}
-                {topBeneficiaries.length > 0 && (
-                    <div className="bg-white border rounded-xl shadow-lg p-6">
-                        <div className="flex items-center gap-3 mb-6 pb-4 border-b">
-                            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                                <ArrowTrendingUpIcon className="w-6 h-6 text-red-600" />
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-bold text-gray-900">Top 5 Bénéficiaires</h2>
-                                <p className="text-sm text-gray-500">Sorties définitives</p>
-                            </div>
-                        </div>
-                        <div className="space-y-3">
-                            {topBeneficiaries.map((ben, idx) => (
-                                <div key={idx} className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center text-white font-bold shadow-lg">
-                                        {idx + 1}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="font-bold text-gray-900 text-lg">{ben.beneficiary}</div>
-                                        <div className="text-sm text-gray-600 mt-1">{ben.productCount} produits • {ben.exitCount} sorties</div>
-                                    </div>
-                                    <div className="text-right px-5 py-3 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200 shadow-sm">
-                                        <div className="font-bold text-gray-900 text-xl">{ben.totalUnits}</div>
-                                        <div className="text-xs text-gray-500 mt-1">unités</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
                     </div>
                 )}
 
@@ -595,27 +809,39 @@ export default function StockOutPage() {
 
                 {/* Historique des sorties */}
                 <div className="bg-white border rounded-xl shadow-lg p-6">
-                    <div className="flex items-center gap-3 mb-6 pb-4 border-b">
-                        <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                            <ArrowRightOnRectangleIcon className="w-6 h-6 text-red-600" />
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                                <ArrowRightOnRectangleIcon className="w-6 h-6 text-red-600" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">Historique des sorties</h2>
+                                <p className="text-sm text-gray-500">{filteredRows.length} sortie{filteredRows.length > 1 ? 's' : ''}</p>
+                            </div>
                         </div>
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900">Historique des sorties</h2>
-                            <p className="text-sm text-gray-500">{filteredRows.length} sortie{filteredRows.length > 1 ? 's' : ''}</p>
-                        </div>
+                        {filteredRows.length > 0 && (
+                            <button
+                                onClick={exportStockOutPDF}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 font-medium"
+                                title="Exporter toutes les sorties filtrées en PDF"
+                            >
+                                <DocumentArrowDownIcon className="w-5 h-5" />
+                                <span>Exporter tout en PDF</span>
+                            </button>
+                        )}
                     </div>
                     <div className="border rounded-xl overflow-hidden">
                         <table className="min-w-full text-md">
-                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                            <thead className="bg-gradient-to-r from-red-50 via-rose-50 to-red-50 border-b-2 border-red-200">
                                 <tr>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Date</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Produit</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Quantité</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Bénéficiaire</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Type</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Statut</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Observation</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Actions</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Date</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Produit</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Quantité</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Bénéficiaire</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Type</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Statut</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Observation</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -651,12 +877,22 @@ export default function StockOutPage() {
                                                 </td>
                                                 <td className="px-6 py-5 text-gray-600">{r.notes || '-'}</td>
                                                 <td className="px-6 py-5">
-                                                    <button
-                                                        className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
-                                                        aria-label="supprimer"
-                                                    >
-                                                        <TrashIcon className="w-5 h-5" />
-                                                    </button>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => exportSingleStockOutPDF(r)}
+                                                            className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-600 transition-all transform hover:scale-110"
+                                                            aria-label="exporter cette sortie en PDF"
+                                                            title="Exporter cette sortie en PDF"
+                                                        >
+                                                            <DocumentArrowDownIcon className="w-5 h-5" />
+                                                        </button>
+                                                        <button
+                                                            className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
+                                                            aria-label="supprimer"
+                                                        >
+                                                            <TrashIcon className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -666,6 +902,38 @@ export default function StockOutPage() {
                         </table>
                     </div>
                 </div>
+
+                {/* Top 5 Bénéficiaires */}
+                {topBeneficiaries.length > 0 && (
+                    <div className="bg-white border rounded-xl shadow-lg p-6">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b">
+                            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                                <ArrowTrendingUpIcon className="w-6 h-6 text-red-600" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">Top 5 Bénéficiaires</h2>
+                                <p className="text-sm text-gray-500">Sorties définitives</p>
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            {topBeneficiaries.map((ben, idx) => (
+                                <div key={idx} className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center text-white font-bold shadow-lg">
+                                        {idx + 1}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="font-bold text-gray-900 text-lg">{ben.beneficiary}</div>
+                                        <div className="text-sm text-gray-600 mt-1">{ben.productCount} produits • {ben.exitCount} sorties</div>
+                                    </div>
+                                    <div className="text-right px-5 py-3 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200 shadow-sm">
+                                        <div className="font-bold text-gray-900 text-xl">{ben.totalUnits}</div>
+                                        <div className="text-xs text-gray-500 mt-1">unités</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </Layout>
     );

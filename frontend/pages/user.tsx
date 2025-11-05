@@ -546,14 +546,14 @@ export default function UserPage() {
                     </div>
                     <div className="border rounded-xl overflow-hidden">
                         <table className="min-w-full text-md">
-                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                            <thead className="bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border-b-2 border-blue-200">
                                 <tr>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Utilisateur</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Rôle</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Statut</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Dernière connexion</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Permissions</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Actions</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Utilisateur</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Rôle</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Statut</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Dernière connexion</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Permissions</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>

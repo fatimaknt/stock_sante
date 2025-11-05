@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { API } from '../utils/api';
 
 type CurrentUser = {
@@ -24,15 +24,18 @@ const AuthContext = createContext<AuthContextType>({
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<CurrentUser>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const reload = async () => {
+    const reload = useCallback(async () => {
+        if (isLoading) return; // Éviter les appels multiples simultanés
+        setIsLoading(true);
         try {
             const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-            if (!token) { setUser(null); return; }
+            if (!token) { setUser(null); setIsLoading(false); return; }
             const res = await fetch(API('/auth/user'), {
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             });
-            if (!res.ok) { setUser(null); return; }
+            if (!res.ok) { setUser(null); setIsLoading(false); return; }
             const data = await res.json();
             setUser({
                 id: data.id,
@@ -44,10 +47,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
         } catch {
             setUser(null);
+        } finally {
+            setIsLoading(false);
         }
-    };
+    }, []); // Pas de dépendances pour éviter les re-créations
 
-    useEffect(() => { reload(); }, []);
+    useEffect(() => {
+        // Charger l'utilisateur seulement au montage si un token existe
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+        if (token && !user && !isLoading) {
+            reload();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Uniquement au montage
 
     const hasPermission = useMemo(() => {
         const set = new Set((user?.permissions || []).map(p => p.toLowerCase()));

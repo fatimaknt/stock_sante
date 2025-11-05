@@ -82,6 +82,7 @@ export default function ReportsPage() {
     const [error, setError] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
 
     // Données
     const [stats, setStats] = useState<any>({});
@@ -143,26 +144,59 @@ export default function ReportsPage() {
     const filteredReceipts = receipts.filter(r => filterByDate(r.received_at));
     const filteredInventories = inventories.filter(i => filterByDate(i.counted_at));
 
+    // Filtrer par année pour le rapport annuel
+    const filterByYear = (dateStr: string, year: string) => {
+        if (!dateStr || !year) return false;
+        const date = new Date(dateStr);
+        return date.getFullYear().toString() === year;
+    };
+
+    const annualStockOuts = stockOuts.filter(s => filterByYear(s.movement_date, selectedYear));
+    const annualReceipts = receipts.filter(r => filterByYear(r.received_at, selectedYear));
+
+    // Fonction pour formater la devise pour PDF
+    const formatCurrencyForPDF = (value: number): string => {
+        const localeMap: { [key: string]: string } = {
+            'fr': 'fr-FR',
+            'en': 'en-US',
+            'es': 'es-ES'
+        };
+        const locale = localeMap[settings.language] || 'fr-FR';
+        const currency = settings.defaultCurrency;
+        let formatted = new Intl.NumberFormat(locale, { style: 'currency', currency: currency }).format(value);
+        // Remplacer les caractères spéciaux qui peuvent poser problème dans PDF
+        formatted = formatted.replace(/\u00A0/g, ' '); // Non-breaking space
+        formatted = formatted.replace(/\u202F/g, ' '); // Narrow non-breaking space
+        return formatted;
+    };
+
     // Calculs des rapports
     const totalStockValue = products.reduce((sum, p) => sum + (p.quantity * p.price), 0);
     const lowStockProducts = products.filter(p => p.quantity > 0 && p.quantity <= p.critical_level);
     const outOfStockProducts = products.filter(p => p.quantity <= 0);
 
     const totalStockOutsValue = filteredStockOuts.reduce((sum, s) => {
-        const price = s.price || products.find(p => p.id === s.product_id)?.price || 0;
-        return sum + (s.quantity * price);
+        const price = Number(s.price) || Number(products.find(p => p.id === s.product_id)?.price) || 0;
+        const quantity = Number(s.quantity) || 0;
+        return sum + (quantity * price);
     }, 0);
 
     const totalReceiptsValue = filteredReceipts.reduce((sum, r) => {
         if (r.items && r.items.length > 0) {
-            return sum + r.items.reduce((itemSum: number, item: ReceiptItemType) => {
-                return itemSum + (item.quantity * item.unit_price);
+            const itemsValue = r.items.reduce((itemSum: number, item: ReceiptItemType) => {
+                const qty = Number(item.quantity) || 0;
+                const price = Number(item.unit_price) || 0;
+                return itemSum + (qty * price);
             }, 0);
+            return sum + itemsValue;
         }
+        const itemsCount = Number(r.items_count) || 0;
+        if (itemsCount === 0) return sum;
+
         const avgPrice = products.length > 0
-            ? products.reduce((s, p) => s + p.price, 0) / products.length
+            ? products.reduce((s, p) => s + (Number(p.price) || 0), 0) / products.length
             : 0;
-        return sum + (r.items_count * avgPrice);
+        return sum + (itemsCount * avgPrice);
     }, 0);
 
     const totalStockOutsQuantity = filteredStockOuts.reduce((sum, s) => sum + s.quantity, 0);
@@ -179,14 +213,15 @@ export default function ReportsPage() {
     const beneficiaryMap = new Map<string, { count: number; quantity: number; value: number }>();
     filteredStockOuts.forEach(s => {
         if (s.beneficiary) {
-            const price = s.price || products.find(p => p.id === s.product_id)?.price || 0;
-            const value = s.quantity * price;
+            const price = Number(s.price) || Number(products.find(p => p.id === s.product_id)?.price) || 0;
+            const quantity = Number(s.quantity) || 0;
+            const value = quantity * price;
             if (!beneficiaryMap.has(s.beneficiary)) {
                 beneficiaryMap.set(s.beneficiary, { count: 0, quantity: 0, value: 0 });
             }
             const data = beneficiaryMap.get(s.beneficiary)!;
             data.count++;
-            data.quantity += s.quantity;
+            data.quantity += quantity;
             data.value += value;
         }
     });
@@ -200,13 +235,14 @@ export default function ReportsPage() {
     filteredStockOuts.forEach(s => {
         const product = products.find(p => p.id === s.product_id);
         if (product) {
-            const price = s.price || product.price;
+            const price = Number(s.price) || Number(product.price) || 0;
+            const quantity = Number(s.quantity) || 0;
             if (!productOutMap.has(s.product_id)) {
                 productOutMap.set(s.product_id, { name: product.name, quantity: 0, value: 0 });
             }
             const data = productOutMap.get(s.product_id)!;
-            data.quantity += s.quantity;
-            data.value += s.quantity * price;
+            data.quantity += quantity;
+            data.value += quantity * price;
         }
     });
     const topProductsOut = Array.from(productOutMap.values())
@@ -708,6 +744,304 @@ export default function ReportsPage() {
         }
     };
 
+    // Fonction pour exporter le rapport annuel en PDF
+    const exportAnnualReportPDF = async () => {
+        try {
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 20;
+            let yPos = margin;
+
+            // En-tête
+            doc.setFontSize(20);
+            doc.setTextColor(16, 185, 129); // emerald-600
+            doc.text('Rapport Annuel StockPro', margin, yPos);
+            yPos += 8;
+            doc.setFontSize(14);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Année: ${selectedYear}`, margin, yPos);
+            yPos += 12;
+
+            // Statistiques générales
+            const annualReceiptsValue = annualReceipts.reduce((sum, r) => {
+                if (r.items && r.items.length > 0) {
+                    const itemsValue = r.items.reduce((itemSum: number, item: ReceiptItemType) => {
+                        const qty = Number(item.quantity) || 0;
+                        const price = Number(item.unit_price) || 0;
+                        return itemSum + (qty * price);
+                    }, 0);
+                    return sum + itemsValue;
+                }
+                const itemsCount = Number(r.items_count) || 0;
+                if (itemsCount === 0) return sum;
+
+                const avgPrice = products.length > 0
+                    ? products.reduce((s, p) => s + (Number(p.price) || 0), 0) / products.length
+                    : 0;
+                return sum + (itemsCount * avgPrice);
+            }, 0);
+
+            const annualStockOutsValue = annualStockOuts.reduce((sum, s) => {
+                const price = Number(s.price) || Number(products.find(p => p.id === s.product_id)?.price) || 0;
+                const quantity = Number(s.quantity) || 0;
+                return sum + (quantity * price);
+            }, 0);
+
+            const annualReceiptsQuantity = annualReceipts.reduce((sum, r) => {
+                if (r.items && r.items.length > 0) {
+                    return sum + r.items.reduce((itemSum: number, item: ReceiptItemType) => {
+                        return itemSum + item.quantity;
+                    }, 0);
+                }
+                return sum + r.items_count;
+            }, 0);
+
+            const annualStockOutsQuantity = annualStockOuts.reduce((sum, s) => sum + s.quantity, 0);
+
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Statistiques Générales', margin, yPos);
+            yPos += 8;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+
+            doc.text(`Total Réceptions: ${annualReceipts.length} réception(s)`, margin, yPos);
+            yPos += 6;
+            doc.text(`Quantité totale réceptionnée: ${annualReceiptsQuantity} unités`, margin, yPos);
+            yPos += 6;
+            doc.text(`Valeur totale réceptionnée: ${formatCurrencyForPDF(annualReceiptsValue)}`, margin, yPos);
+            yPos += 8;
+
+            doc.text(`Total Sorties: ${annualStockOuts.length} sortie(s)`, margin, yPos);
+            yPos += 6;
+            doc.text(`Quantité totale sortie: ${annualStockOutsQuantity} unités`, margin, yPos);
+            yPos += 6;
+            doc.text(`Valeur totale sortie: ${formatCurrencyForPDF(annualStockOutsValue)}`, margin, yPos);
+            yPos += 10;
+
+            // Réceptions
+            if (annualReceipts.length > 0) {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(12);
+                doc.text('Réceptions', margin, yPos);
+                yPos += 8;
+
+                // En-tête du tableau
+                doc.setFillColor(16, 185, 129); // emerald-600
+                doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+
+                let xPos = margin + 5;
+                doc.text('Date', xPos, yPos + 5);
+                xPos += 30;
+                doc.text('Fournisseur', xPos, yPos + 5);
+                xPos += 50;
+                doc.text('Articles', xPos, yPos + 5);
+                xPos += 20;
+                doc.text('Valeur', xPos, yPos + 5);
+
+                yPos += 10;
+                doc.setTextColor(0, 0, 0);
+                doc.setFont('helvetica', 'normal');
+
+                annualReceipts.forEach((r) => {
+                    if (yPos > doc.internal.pageSize.getHeight() - 30) {
+                        doc.addPage();
+                        yPos = margin;
+                    }
+
+                    const receiptValue = r.items && r.items.length > 0
+                        ? r.items.reduce((sum: number, item: ReceiptItemType) => sum + (item.quantity * item.unit_price), 0)
+                        : 0;
+
+                    doc.setDrawColor(200, 200, 200);
+                    doc.line(margin, yPos, pageWidth - margin, yPos);
+
+                    xPos = margin + 5;
+                    doc.setFontSize(9);
+                    doc.text(formatDate(r.received_at) || '-', xPos, yPos + 5);
+                    xPos += 30;
+                    doc.text(r.supplier || 'ND', xPos, yPos + 5);
+                    xPos += 50;
+                    doc.text(String(r.items_count || 0), xPos, yPos + 5);
+                    xPos += 20;
+                    doc.text(formatCurrencyForPDF(receiptValue), xPos, yPos + 5);
+
+                    yPos += 8;
+                });
+                yPos += 10;
+            }
+
+            // Sorties
+            if (annualStockOuts.length > 0) {
+                if (yPos > doc.internal.pageSize.getHeight() - 50) {
+                    doc.addPage();
+                    yPos = margin;
+                }
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(12);
+                doc.text('Sorties', margin, yPos);
+                yPos += 8;
+
+                // En-tête du tableau
+                doc.setFillColor(220, 38, 38); // red-600
+                doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+
+                let xPos = margin + 5;
+                doc.text('Date', xPos, yPos + 5);
+                xPos += 30;
+                doc.text('Produit', xPos, yPos + 5);
+                xPos += 60;
+                doc.text('Qté', xPos, yPos + 5);
+                xPos += 20;
+                doc.text('Bénéficiaire', xPos, yPos + 5);
+                xPos += 40;
+                doc.text('Valeur', xPos, yPos + 5);
+
+                yPos += 10;
+                doc.setTextColor(0, 0, 0);
+                doc.setFont('helvetica', 'normal');
+
+                annualStockOuts.forEach((s) => {
+                    if (yPos > doc.internal.pageSize.getHeight() - 30) {
+                        doc.addPage();
+                        yPos = margin;
+                    }
+
+                    const product = products.find(p => p.id === s.product_id);
+                    const productName = product?.name || `Produit #${s.product_id}`;
+                    const price = s.price || product?.price || 0;
+                    const value = s.quantity * price;
+
+                    doc.setDrawColor(200, 200, 200);
+                    doc.line(margin, yPos, pageWidth - margin, yPos);
+
+                    xPos = margin + 5;
+                    doc.setFontSize(9);
+                    doc.text(formatDate(s.movement_date) || '-', xPos, yPos + 5);
+                    xPos += 30;
+                    const productLines = doc.splitTextToSize(productName, 60);
+                    doc.text(productLines, xPos, yPos + 5);
+                    xPos += 60;
+                    doc.text(String(s.quantity || 0), xPos, yPos + 5);
+                    xPos += 20;
+                    doc.text(s.beneficiary || 'ND', xPos, yPos + 5);
+                    xPos += 40;
+                    doc.text(formatCurrencyForPDF(value), xPos, yPos + 5);
+
+                    yPos += Math.max(8, productLines.length * 5);
+                });
+            }
+
+            // Footer
+            const pageCount = doc.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(128, 128, 128);
+                doc.text(
+                    `Page ${i} sur ${pageCount} - Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`,
+                    margin,
+                    doc.internal.pageSize.getHeight() - 10
+                );
+            }
+
+            doc.save(`rapport_annuel_${selectedYear}.pdf`);
+        } catch (err: any) {
+            console.error('Erreur export PDF annuel:', err);
+            alert('Échec de l\'export PDF annuel : ' + (err instanceof Error ? err.message : 'Erreur inconnue'));
+        }
+    };
+
+    // Fonction pour exporter le rapport annuel en Excel
+    const exportAnnualReportExcel = async () => {
+        try {
+            const XLSX = await import('xlsx');
+
+            const annualReceiptsValue = annualReceipts.reduce((sum, r) => {
+                if (r.items && r.items.length > 0) {
+                    const itemsValue = r.items.reduce((itemSum: number, item: ReceiptItemType) => {
+                        const qty = Number(item.quantity) || 0;
+                        const price = Number(item.unit_price) || 0;
+                        return itemSum + (qty * price);
+                    }, 0);
+                    return sum + itemsValue;
+                }
+                const itemsCount = Number(r.items_count) || 0;
+                if (itemsCount === 0) return sum;
+
+                const avgPrice = products.length > 0
+                    ? products.reduce((s, p) => s + (Number(p.price) || 0), 0) / products.length
+                    : 0;
+                return sum + (itemsCount * avgPrice);
+            }, 0);
+
+            const annualStockOutsValue = annualStockOuts.reduce((sum, s) => {
+                const price = Number(s.price) || Number(products.find(p => p.id === s.product_id)?.price) || 0;
+                const quantity = Number(s.quantity) || 0;
+                return sum + (quantity * price);
+            }, 0);
+
+            // Résumé
+            const aoaSummary = [
+                ['Rapport Annuel StockPro'],
+                ['Année', selectedYear],
+                [''],
+                ['Statistiques Générales'],
+                ['Total Réceptions', annualReceipts.length],
+                ['Quantité totale réceptionnée', annualReceipts.reduce((sum, r) => {
+                    if (r.items && r.items.length > 0) {
+                        return sum + r.items.reduce((itemSum: number, item: ReceiptItemType) => itemSum + item.quantity, 0);
+                    }
+                    return sum + r.items_count;
+                }, 0)],
+                ['Valeur totale réceptionnée', annualReceiptsValue],
+                [''],
+                ['Total Sorties', annualStockOuts.length],
+                ['Quantité totale sortie', annualStockOuts.reduce((sum, s) => sum + s.quantity, 0)],
+                ['Valeur totale sortie', annualStockOutsValue],
+            ];
+
+            // Réceptions
+            const aoaReceipts = [
+                ['Date', 'Fournisseur', 'Articles', 'Valeur'],
+                ...annualReceipts.map(r => {
+                    const receiptValue = r.items && r.items.length > 0
+                        ? r.items.reduce((sum: number, item: ReceiptItemType) => sum + (item.quantity * item.unit_price), 0)
+                        : 0;
+                    return [r.received_at || '', r.supplier || 'ND', r.items_count || 0, receiptValue];
+                }),
+            ];
+
+            // Sorties
+            const aoaStockOuts = [
+                ['Date', 'Produit', 'Quantité', 'Bénéficiaire', 'Valeur'],
+                ...annualStockOuts.map(s => {
+                    const product = products.find(p => p.id === s.product_id);
+                    const productName = product?.name || `Produit #${s.product_id}`;
+                    const price = s.price || product?.price || 0;
+                    return [s.movement_date || '', productName, s.quantity, s.beneficiary || 'ND', s.quantity * price];
+                }),
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaSummary), 'Résumé');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaReceipts), 'Réceptions');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaStockOuts), 'Sorties');
+
+            XLSX.writeFile(wb, `rapport_annuel_${selectedYear}.xlsx`);
+        } catch (err: any) {
+            console.error('Erreur export Excel annuel:', err);
+            alert('Échec de l\'export Excel annuel');
+        }
+    };
+
     // Calcul des pourcentages pour les graphiques
     const netBalance = totalReceiptsValue - totalStockOutsValue;
     const stockHealth = products.length > 0
@@ -1082,12 +1416,12 @@ export default function ReportsPage() {
 
                         <div className="border rounded-lg overflow-hidden">
                             <table className="min-w-full text-sm">
-                                <thead className="bg-gray-50">
+                                <thead className="bg-gradient-to-r from-teal-50 via-cyan-50 to-teal-50 border-b-2 border-teal-200">
                                     <tr>
-                                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Produit</th>
-                                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Date</th>
-                                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Agent</th>
-                                        <th className="text-left px-4 py-3 font-semibold text-gray-700">Écart</th>
+                                        <th className="text-left px-4 py-3 text-gray-800 font-bold uppercase tracking-wide text-xs">Produit</th>
+                                        <th className="text-left px-4 py-3 text-gray-800 font-bold uppercase tracking-wide text-xs">Date</th>
+                                        <th className="text-left px-4 py-3 text-gray-800 font-bold uppercase tracking-wide text-xs">Agent</th>
+                                        <th className="text-left px-4 py-3 text-gray-800 font-bold uppercase tracking-wide text-xs">Écart</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1158,6 +1492,65 @@ export default function ReportsPage() {
                                 <p className="text-xl font-bold text-red-600">{outOfStockProducts.length}</p>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* Rapport Annuel */}
+                <div className="bg-white border rounded-xl shadow-lg p-6">
+                    <div className="flex items-center gap-3 mb-6 pb-4 border-b">
+                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                            <CalendarDaysIcon className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900">Rapport Annuel</h2>
+                            <p className="text-sm text-gray-500">Export des sorties et réceptions de l'année entière</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="flex items-center gap-3">
+                            <label className="text-sm font-semibold text-gray-700">Année:</label>
+                            <select
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(e.target.value)}
+                                className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            >
+                                {Array.from({ length: 10 }, (_, i) => {
+                                    const year = new Date().getFullYear() - i;
+                                    return (
+                                        <option key={year} value={year.toString()}>
+                                            {year}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
+
+                        <div className="flex items-center gap-3 ml-auto">
+                            <div className="text-sm text-gray-600">
+                                <span className="font-semibold">{annualReceipts.length}</span> réception(s) •
+                                <span className="font-semibold"> {annualStockOuts.length}</span> sortie(s)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={exportAnnualReportPDF}
+                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 font-medium"
+                            type="button"
+                        >
+                            <DocumentArrowDownIcon className="w-5 h-5" />
+                            Exporter en PDF
+                        </button>
+                        <button
+                            onClick={exportAnnualReportExcel}
+                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg shadow-lg hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 font-medium"
+                            type="button"
+                        >
+                            <DocumentArrowDownIcon className="w-5 h-5" />
+                            Exporter en Excel
+                        </button>
                     </div>
                 </div>
             </div>

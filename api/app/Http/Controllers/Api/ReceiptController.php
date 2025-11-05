@@ -1,10 +1,9 @@
 <?php
 namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
-use App\Models\{Receipt,ReceiptItem,Product};
+use App\Models\{Receipt,ReceiptItem,Product,Category};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class ReceiptController extends Controller
 {
@@ -16,6 +15,8 @@ class ReceiptController extends Controller
                 'ref' => $r->ref,
                 'supplier' => $r->supplier ?? ($r->supplier_id ? 'ID: ' . $r->supplier_id : null),
                 'agent' => $r->agent,
+                'acquirer' => $r->acquirer,
+                'persons_present' => $r->persons_present,
                 'received_at' => $r->received_at,
                 'notes' => $r->notes,
                 'items_count' => $r->items_count ?? 0,
@@ -38,12 +39,16 @@ class ReceiptController extends Controller
             'supplier_id' => 'nullable|integer|exists:suppliers,id',
             'supplier' => 'nullable|string',
             'agent' => 'required|string',
+            'acquirer' => 'nullable|string',
+            'persons_present' => 'nullable|string',
             'received_at' => 'required|date',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|integer|exists:products,id',
             'items.*.product_name' => 'nullable|string',
             'items.*.product_ref' => 'nullable|string|unique:products,ref',
+            'items.*.product_category_id' => 'nullable|integer|exists:categories,id',
+            'items.*.product_category' => 'nullable|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'nullable|numeric',
         ]);
@@ -57,11 +62,28 @@ class ReceiptController extends Controller
                 if (!$productId && isset($it['product_name']) && trim($it['product_name']) !== '') {
                     $product = Product::where('name', trim($it['product_name']))->first();
                     if (!$product) {
+                        // Déterminer la catégorie
+                        $categoryName = 'Non catégorisé';
+                        $categoryId = null;
+
+                        if (!empty($it['product_category_id'])) {
+                            // Si category_id est fourni, chercher la catégorie
+                            $category = Category::find($it['product_category_id']);
+                            if ($category) {
+                                $categoryName = $category->name;
+                                $categoryId = $category->id;
+                            }
+                        } elseif (!empty($it['product_category'])) {
+                            // Si category name est fourni directement
+                            $categoryName = trim($it['product_category']);
+                        }
+
                         // Créer un nouveau produit si il n'existe pas
                         $product = Product::create([
                             'ref' => !empty($it['product_ref']) ? trim($it['product_ref']) : null,
                             'name' => trim($it['product_name']),
-                            'category' => 'Non catégorisé',
+                            'category' => $categoryName,
+                            'category_id' => $categoryId,
                             'quantity' => 0,
                             'price' => $it['unit_price'] ?? 0,
                             'critical_level' => 10,
@@ -89,6 +111,42 @@ class ReceiptController extends Controller
                 }
             }
             return response()->json(['id' => $rec->id], 201);
+        });
+    }
+
+    public function update(Request $r, Receipt $receipt)
+    {
+        $v = $r->validate([
+            'supplier' => 'nullable|string',
+            'agent' => 'sometimes|required|string',
+            'acquirer' => 'nullable|string',
+            'persons_present' => 'nullable|string',
+            'received_at' => 'sometimes|required|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        $receipt->update($v);
+        return response()->json(['message' => 'Réception mise à jour avec succès', 'receipt' => $receipt], 200);
+    }
+
+    public function destroy(Receipt $receipt)
+    {
+        return DB::transaction(function() use($receipt) {
+            // Annuler les quantités ajoutées aux produits
+            foreach($receipt->items as $item) {
+                $product = Product::find($item->product_id);
+                if ($product) {
+                    $product->decrement('quantity', $item->quantity);
+                }
+            }
+
+            // Supprimer les items de la réception
+            $receipt->items()->delete();
+
+            // Supprimer la réception
+            $receipt->delete();
+
+            return response()->json(['message' => 'Réception supprimée avec succès'], 200);
         });
     }
 }

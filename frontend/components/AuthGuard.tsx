@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-    const { reload, hasPermission } = useAuth();
+    const { reload, hasPermission, user } = useAuth();
 
     // Déterminer si la route est publique (doit être stable et avant tout return)
     const isPublic = useMemo(() => {
@@ -33,7 +33,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                 });
 
                 if (response.ok) {
-                    await reload();
+                    // Charger l'utilisateur une seule fois
+                    if (!user) {
+                        await reload();
+                    }
                     setIsAuthenticated(true);
                 } else {
                     localStorage.removeItem('auth_token');
@@ -55,7 +58,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         }
 
         checkAuth();
-    }, [router, reload, isPublic]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [router.pathname, isPublic]);
 
     // Map des permissions requises par route
     const routePermission = useMemo(() => {

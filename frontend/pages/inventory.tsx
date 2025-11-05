@@ -419,16 +419,16 @@ export default function InventoryPage() {
                     </div>
                     <div className="border rounded-xl overflow-hidden">
                         <table className="min-w-full text-md">
-                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                            <thead className="bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border-b-2 border-purple-200">
                                 <tr>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Date</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Produit</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Stock théorique</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Quantité comptée</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Écart</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Agent</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Observation</th>
-                                    <th className="text-left px-6 py-4 text-gray-700 font-semibold">Actions</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Date</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Produit</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Stock théorique</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Quantité comptée</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Écart</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Agent</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Observation</th>
+                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
