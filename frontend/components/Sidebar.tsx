@@ -12,6 +12,7 @@ import {
     Cog6ToothIcon,
     BellIcon,
     ChartBarIcon,
+    TruckIcon,
 } from '@heroicons/react/24/outline';
 
 export default function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolean; onToggle: () => void }) {
@@ -26,6 +27,7 @@ export default function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolea
         { href: '/receipts', label: 'Réception', icon: 'inbox', perm: 'Réceptions' },
         { href: '/stockout', label: 'Sortie', icon: 'arrow-right', perm: 'Sorties' },
         { href: '/inventory', label: 'Inventaire', icon: 'clipboard', perm: 'Inventaire' },
+        { href: '/vehicles', label: 'Véhicules', icon: 'truck', perm: null },
         { href: '/alerts', label: 'Alertes', icon: 'bell', perm: 'Alertes' },
         { href: '/user', label: 'Utilisateur', icon: 'user', perm: 'Administration' },
         { href: '/reports', label: 'Rapports', icon: 'chart', perm: 'Rapports' },
@@ -69,6 +71,8 @@ export default function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolea
                 return <BellIcon className={`${iconClass} ${colorClass}`} />;
             case 'chart':
                 return <ChartBarIcon className={`${iconClass} ${colorClass}`} />;
+            case 'truck':
+                return <TruckIcon className={`${iconClass} ${colorClass}`} />;
             default:
                 return null;
         }

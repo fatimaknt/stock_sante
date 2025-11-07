@@ -905,29 +905,26 @@ export default function StockOutPage() {
 
                 {/* Top 5 Bénéficiaires */}
                 {topBeneficiaries.length > 0 && (
-                    <div className="bg-white border rounded-xl shadow-lg p-6">
-                        <div className="flex items-center gap-3 mb-6 pb-4 border-b">
-                            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                                <ArrowTrendingUpIcon className="w-6 h-6 text-red-600" />
+                    <div className="bg-white border rounded-xl shadow-lg p-6 border-gray-200">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                                <ArrowTrendingUpIcon className="w-5 h-5 text-white" />
                             </div>
-                            <div>
-                                <h2 className="text-2xl font-bold text-gray-900">Top 5 Bénéficiaires</h2>
-                                <p className="text-sm text-gray-500">Sorties définitives</p>
-                            </div>
+                            <h2 className="text-xl font-bold text-gray-900">Top 5 Bénéficiaires</h2>
                         </div>
                         <div className="space-y-3">
                             {topBeneficiaries.map((ben, idx) => (
-                                <div key={idx} className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center text-white font-bold shadow-lg">
+                                <div key={idx} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 hover:scale-105 hover:shadow-md hover:border hover:border-red-300 transition-all duration-300 cursor-pointer">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white font-bold text-sm">
                                         {idx + 1}
                                     </div>
                                     <div className="flex-1">
-                                        <div className="font-bold text-gray-900 text-lg">{ben.beneficiary}</div>
-                                        <div className="text-sm text-gray-600 mt-1">{ben.productCount} produits • {ben.exitCount} sorties</div>
+                                        <p className="font-bold text-gray-900">{ben.beneficiary}</p>
+                                        <p className="text-sm text-gray-500">{ben.productCount} produits • {ben.exitCount} sorties</p>
                                     </div>
-                                    <div className="text-right px-5 py-3 rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200 shadow-sm">
-                                        <div className="font-bold text-gray-900 text-xl">{ben.totalUnits}</div>
-                                        <div className="text-xs text-gray-500 mt-1">unités</div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-red-600">{ben.totalUnits}</p>
+                                        <p className="text-xs text-gray-500">unités</p>
                                     </div>
                                 </div>
                             ))}

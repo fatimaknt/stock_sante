@@ -1,6 +1,6 @@
 <?php
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\{ProductController,ReceiptController,StockOutController,InventoryController,StatsController,CategoryController,UserController,AuthController,UserActivationController};
+use App\Http\Controllers\Api\{ProductController,ReceiptController,StockOutController,InventoryController,StatsController,CategoryController,UserController,AuthController,UserActivationController,VehicleController};
 
 // Routes publiques (pas d'authentification)
 Route::post('auth/login', [AuthController::class,'login']);
@@ -41,6 +41,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('users/{user}', [UserController::class,'update']);
     Route::delete('users/{user}', [UserController::class,'destroy']);
     Route::post('users/invite', [UserController::class,'invite']);
+
+    // Véhicules
+    Route::get('vehicles', [VehicleController::class,'index']);
+    Route::post('vehicles', [VehicleController::class,'store']);
+    Route::post('vehicles/assign', [VehicleController::class,'assign']);
+    Route::post('vehicles/{id}/unassign', [VehicleController::class,'unassign']);
 
     // Authentification protégée
     Route::post('auth/logout', [AuthController::class,'logout']);
