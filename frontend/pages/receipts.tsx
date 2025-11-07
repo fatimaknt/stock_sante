@@ -473,6 +473,228 @@ export default function ReceiptsPage() {
         }
     };
 
+    // Fonction pour exporter toutes les réceptions filtrées en PDF
+    const exportAllReceiptsPDF = async () => {
+        try {
+            if (filteredRows.length === 0) {
+                setError('Aucune réception à exporter');
+                return;
+            }
+
+            // Charger toutes les réceptions avec leurs détails complets
+            const allReceipts = await getJSON(API(`/receipts`)) as any[];
+            const receiptsWithDetails = filteredRows.map(filteredRow => {
+                const fullReceipt = Array.isArray(allReceipts) ? allReceipts.find((r: any) => r.id === filteredRow.id) : null;
+                return fullReceipt || filteredRow;
+            });
+
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 20;
+            let yPos = margin;
+
+            // En-tête principal
+            doc.setFontSize(18);
+            doc.setTextColor(16, 185, 129); // emerald-500
+            doc.text('Rapport des Réceptions de Produits', margin, yPos);
+            yPos += 10;
+
+            // Informations de filtre
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            const filters: string[] = [];
+            if (dateFilter) filters.push(`Date: ${formatDate(dateFilter)}`);
+            if (searchQuery) filters.push(`Recherche: ${searchQuery}`);
+
+            if (filters.length > 0) {
+                doc.text(`Filtres appliqués: ${filters.join(' | ')}`, margin, yPos);
+                yPos += 7;
+            }
+
+            doc.text(`Total: ${filteredRows.length} réception${filteredRows.length > 1 ? 's' : ''}`, margin, yPos);
+            yPos += 10;
+
+            // Parcourir toutes les réceptions
+            for (let idx = 0; idx < receiptsWithDetails.length; idx++) {
+                const receiptData = receiptsWithDetails[idx];
+
+                // Vérifier si on a besoin d'une nouvelle page
+                if (yPos > 250) {
+                    doc.addPage();
+                    yPos = margin;
+                }
+
+                // Titre de la réception
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(16, 185, 129);
+                doc.text(`Réception #${receiptData.id}`, margin, yPos);
+                yPos += 8;
+
+                // Informations de la réception
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(0, 0, 0);
+                doc.text(`Fournisseur: ${receiptData.supplier || 'ND'}`, margin, yPos);
+                yPos += 6;
+                doc.text(`Agent responsable: ${receiptData.agent || 'ND'}`, margin, yPos);
+                yPos += 6;
+                if (receiptData.acquirer) {
+                    doc.text(`Acquéreur: ${receiptData.acquirer}`, margin, yPos);
+                    yPos += 6;
+                }
+                if (receiptData.persons_present && receiptData.persons_present !== 'ND') {
+                    doc.text(`Personnes présentes: ${receiptData.persons_present}`, margin, yPos);
+                    yPos += 6;
+                }
+                doc.text(`Date: ${formatDate(receiptData.received_at)}`, margin, yPos);
+                yPos += 8;
+
+                // Tableau des produits si disponible
+                if (receiptData.items && receiptData.items.length > 0) {
+                    // Vérifier si on a besoin d'une nouvelle page pour le tableau
+                    if (yPos > 220) {
+                        doc.addPage();
+                        yPos = margin;
+                    }
+
+                    doc.setFontSize(11);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Produits reçus:', margin, yPos);
+                    yPos += 6;
+
+                    doc.setFontSize(9);
+                    let currentY = yPos;
+
+                    // Positions des colonnes
+                    const colProduit = margin;
+                    const colQuantite = margin + 70;
+                    const colPrixUnitaire = margin + 95;
+                    const colTotal = margin + 135;
+                    const maxWidth = pageWidth - margin;
+
+                    // En-têtes du tableau
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Produit', colProduit, currentY);
+                    doc.text('Qté', colQuantite, currentY);
+                    doc.text('Prix unit.', colPrixUnitaire, currentY);
+                    doc.text('Total', colTotal, currentY);
+                    currentY += 5;
+
+                    // Ligne de séparation
+                    doc.setDrawColor(200, 200, 200);
+                    doc.line(margin, currentY, maxWidth, currentY);
+                    currentY += 4;
+
+                    // Lignes du tableau
+                    doc.setFont('helvetica', 'normal');
+                    let totalAmount = 0;
+                    for (const item of receiptData.items) {
+                        if (currentY > 250) {
+                            doc.addPage();
+                            currentY = margin;
+                        }
+
+                        const product = products.find(p => p.id === item.product_id);
+                        const productName = product ? product.name : `Produit #${item.product_id}`;
+                        const quantity = item.quantity || 0;
+                        const unitPrice = item.unit_price || 0;
+                        const total = quantity * unitPrice;
+                        totalAmount += total;
+
+                        // Tronquer le nom du produit si trop long
+                        const displayName = productName.length > 25 ? productName.substring(0, 22) + '...' : productName;
+                        doc.text(displayName, colProduit, currentY);
+
+                        // Aligner à droite pour les nombres
+                        const quantityStr = quantity.toString();
+                        const quantityWidth = doc.getTextWidth(quantityStr);
+                        doc.text(quantityStr, colQuantite + 15 - quantityWidth, currentY);
+
+                        const priceStr = `${unitPrice.toFixed(2)} ${settings.defaultCurrency}`;
+                        const priceWidth = doc.getTextWidth(priceStr);
+                        doc.text(priceStr, colPrixUnitaire + 20 - priceWidth, currentY);
+
+                        const totalStr = `${total.toFixed(2)} ${settings.defaultCurrency}`;
+                        const totalWidth = doc.getTextWidth(totalStr);
+                        doc.text(totalStr, colTotal + 20 - totalWidth, currentY);
+
+                        currentY += 6;
+                    }
+
+                    // Total de la réception
+                    currentY += 2;
+                    doc.line(margin, currentY, maxWidth, currentY);
+                    currentY += 4;
+                    doc.setFont('helvetica', 'bold');
+                    const totalLabel = 'Total:';
+                    const totalValue = `${totalAmount.toFixed(2)} ${settings.defaultCurrency}`;
+                    doc.text(totalLabel, colPrixUnitaire, currentY);
+                    const totalValueWidth = doc.getTextWidth(totalValue);
+                    doc.text(totalValue, colTotal + 20 - totalValueWidth, currentY);
+                    yPos = currentY;
+                } else {
+                    // Si pas d'items, afficher juste le nombre d'articles
+                    doc.text(`Nombre d'articles: ${receiptData.items_count || 0}`, margin, yPos);
+                    yPos += 6;
+                }
+
+                // Notes (abrégées si trop longues)
+                if (receiptData.notes) {
+                    yPos += 4;
+                    if (yPos > 250) {
+                        doc.addPage();
+                        yPos = margin;
+                    }
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(9);
+                    doc.text('Notes:', margin, yPos);
+                    yPos += 5;
+                    doc.setFont('helvetica', 'normal');
+                    const notesPreview = receiptData.notes.length > 100
+                        ? receiptData.notes.substring(0, 97) + '...'
+                        : receiptData.notes;
+                    const notesLines = doc.splitTextToSize(notesPreview, pageWidth - 2 * margin);
+                    doc.text(notesLines, margin, yPos);
+                    yPos += notesLines.length * 5;
+                }
+
+                // Séparateur entre les réceptions (sauf pour la dernière)
+                if (idx < receiptsWithDetails.length - 1) {
+                    yPos += 5;
+                    if (yPos > 250) {
+                        doc.addPage();
+                        yPos = margin;
+                    }
+                    doc.setDrawColor(200, 200, 200);
+                    doc.line(margin, yPos, pageWidth - margin, yPos);
+                    yPos += 8;
+                }
+            }
+
+            // Pied de page
+            const pageCount = doc.internal.pages.length - 1;
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(128, 128, 128);
+                const footerY = doc.internal.pageSize.getHeight() - 10;
+                doc.text(`Page ${i} / ${pageCount}`, pageWidth / 2, footerY, { align: 'center' });
+                const dateStr = new Date().toLocaleDateString('fr-FR');
+                const timeStr = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                doc.text(`Généré le ${dateStr} à ${timeStr}`, margin, footerY);
+            }
+
+            // Télécharger le PDF
+            const fileName = `receptions-${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(fileName);
+            setSuccess('Toutes les réceptions ont été exportées en PDF avec succès!');
+        } catch (err: any) {
+            console.error('Erreur lors de l\'export PDF:', err);
+            setError('Erreur lors de l\'export PDF');
+        }
+    };
+
     return (
         <Layout>
             <div className="pt-24 px-7 pb-7 space-y-6">
@@ -666,7 +888,7 @@ export default function ReceiptsPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-sm font-semibold mb-2 block">Personnes présentes</label>
+                                    <label className="text-sm font-semibold mb-2 block">Commissions de reception</label>
                                     <input
                                         type="text"
                                         className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm"
@@ -759,6 +981,14 @@ export default function ReceiptsPage() {
                                     <XMarkIcon className="w-5 h-5" />
                                 </button>
                             )}
+                            <button
+                                onClick={exportAllReceiptsPDF}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 font-medium"
+                                title="Exporter toutes les réceptions filtrées en PDF"
+                            >
+                                <DocumentArrowDownIcon className="w-5 h-5" />
+                                Exporter tout en PDF
+                            </button>
                         </div>
                     </div>
                     <div className="border rounded-xl overflow-hidden">

@@ -1502,7 +1502,7 @@ export default function ReportsPage() {
                             <CalendarDaysIcon className="w-6 h-6 text-blue-600" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-900">Rapport Annuel</h2>
+                            <h2 className="text-2xl font-bold text-gray-900">Livre Journal</h2>
                             <p className="text-sm text-gray-500">Export des sorties et réceptions de l'année entière</p>
                         </div>
                     </div>
