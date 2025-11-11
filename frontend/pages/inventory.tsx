@@ -1,7 +1,7 @@
 import React, { useEffect, useState, FormEvent, useRef } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
-import { PlusIcon, TrashIcon, ClipboardDocumentListIcon, MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, ClipboardDocumentListIcon, MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, ArrowTrendingUpIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api';
 
 type Product = { id: number; name: string; quantity: number };
@@ -40,6 +40,10 @@ export default function InventoryPage() {
     const [selectedVariance, setSelectedVariance] = useState<string>('Tous');
     const [isVarianceDropdownOpen, setIsVarianceDropdownOpen] = useState(false);
     const varianceDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Pagination
+    const [inventoryCurrentPage, setInventoryCurrentPage] = useState(1);
+    const [inventoryItemsPerPage] = useState(10);
 
     useEffect(() => {
         if (!date) {
@@ -331,7 +335,10 @@ export default function InventoryPage() {
                                 type="text"
                                 placeholder="Rechercher par produit ou agent..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setInventoryCurrentPage(1);
+                                }}
                                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                             />
                         </div>
@@ -341,7 +348,10 @@ export default function InventoryPage() {
                             <input
                                 type="date"
                                 value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
+                                onChange={(e) => {
+                                    setSelectedDate(e.target.value);
+                                    setInventoryCurrentPage(1);
+                                }}
                                 className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-w-[150px] shadow-sm transition-all"
                             />
                         </div>
@@ -365,6 +375,7 @@ export default function InventoryPage() {
                                             e.stopPropagation();
                                             setSelectedVariance('Tous');
                                             setIsVarianceDropdownOpen(false);
+                                            setInventoryCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${selectedVariance === 'Tous' ? 'bg-emerald-50 text-emerald-700' : ''}`}
                                     >
@@ -375,6 +386,7 @@ export default function InventoryPage() {
                                             e.stopPropagation();
                                             setSelectedVariance('Positif');
                                             setIsVarianceDropdownOpen(false);
+                                            setInventoryCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${selectedVariance === 'Positif' ? 'bg-emerald-50 text-emerald-700' : ''}`}
                                     >
@@ -385,6 +397,7 @@ export default function InventoryPage() {
                                             e.stopPropagation();
                                             setSelectedVariance('Négatif');
                                             setIsVarianceDropdownOpen(false);
+                                            setInventoryCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${selectedVariance === 'Négatif' ? 'bg-emerald-50 text-emerald-700' : ''}`}
                                     >
@@ -395,6 +408,7 @@ export default function InventoryPage() {
                                             e.stopPropagation();
                                             setSelectedVariance('Conforme');
                                             setIsVarianceDropdownOpen(false);
+                                            setInventoryCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${selectedVariance === 'Conforme' ? 'bg-emerald-50 text-emerald-700' : ''}`}
                                     >
@@ -416,6 +430,11 @@ export default function InventoryPage() {
                             <h2 className="text-2xl font-bold text-gray-900">Historique des inventaires</h2>
                             <p className="text-sm text-gray-500">{filteredRows.reduce((acc, inv) => acc + (inv.items?.length || 0), 0)} entrée{filteredRows.reduce((acc, inv) => acc + (inv.items?.length || 0), 0) > 1 ? 's' : ''}</p>
                         </div>
+                        {filteredRows.length > inventoryItemsPerPage && (
+                            <p className="text-sm text-gray-600">
+                                {((inventoryCurrentPage - 1) * inventoryItemsPerPage + 1)} - {Math.min(inventoryCurrentPage * inventoryItemsPerPage, filteredRows.length)} sur {filteredRows.length}
+                            </p>
+                        )}
                     </div>
                     <div className="border rounded-xl overflow-hidden">
                         <table className="min-w-full text-md">
@@ -440,7 +459,8 @@ export default function InventoryPage() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredRows.map(inv => {
+                                    filteredRows
+                                        .map(inv => {
                                         return inv.items?.map((item, itemIdx) => {
                                             const product = products.find(p => p.id === item.product_id);
                                             return (
@@ -472,11 +492,81 @@ export default function InventoryPage() {
                                                 </tr>
                                             );
                                         }) || [];
-                                    }).flat()
+                                        })
+                                        .flat()
+                                        .slice((inventoryCurrentPage - 1) * inventoryItemsPerPage, inventoryCurrentPage * inventoryItemsPerPage)
                                 )}
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Pagination */}
+                    {filteredRows.length > inventoryItemsPerPage && (
+                        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setInventoryCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={inventoryCurrentPage === 1}
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        inventoryCurrentPage === 1
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                    }`}
+                                >
+                                    <ChevronLeftIcon className="w-5 h-5" />
+                                    <span>Précédent</span>
+                                </button>
+                                <div className="flex items-center gap-1">
+                                    {Array.from({ length: Math.ceil(filteredRows.length / inventoryItemsPerPage) }, (_, i) => i + 1)
+                                        .filter(page => {
+                                            const totalPages = Math.ceil(filteredRows.length / inventoryItemsPerPage);
+                                            if (totalPages <= 7) return true;
+                                            if (page === 1 || page === totalPages) return true;
+                                            if (Math.abs(page - inventoryCurrentPage) <= 1) return true;
+                                            return false;
+                                        })
+                                        .map((page, index, array) => {
+                                            const totalPages = Math.ceil(filteredRows.length / inventoryItemsPerPage);
+                                            const showEllipsis = index > 0 && array[index - 1] !== page - 1;
+                                            const showEllipsisAfter = index < array.length - 1 && array[index + 1] !== page + 1 && page !== totalPages;
+                                            
+                                            return (
+                                                <React.Fragment key={page}>
+                                                    {showEllipsis && (
+                                                        <span className="px-2 text-gray-500">...</span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => setInventoryCurrentPage(page)}
+                                                        className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${
+                                                            inventoryCurrentPage === page
+                                                                ? 'bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-lg'
+                                                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                                        }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                    {showEllipsisAfter && (
+                                                        <span className="px-2 text-gray-500">...</span>
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                </div>
+                                <button
+                                    onClick={() => setInventoryCurrentPage(prev => Math.min(Math.ceil(filteredRows.length / inventoryItemsPerPage), prev + 1))}
+                                    disabled={inventoryCurrentPage >= Math.ceil(filteredRows.length / inventoryItemsPerPage)}
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        inventoryCurrentPage >= Math.ceil(filteredRows.length / inventoryItemsPerPage)
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                    }`}
+                                >
+                                    <span>Suivant</span>
+                                    <ChevronRightIcon className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </Layout>

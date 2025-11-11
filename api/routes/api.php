@@ -1,6 +1,6 @@
 <?php
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\{ProductController,ReceiptController,StockOutController,InventoryController,StatsController,CategoryController,UserController,AuthController,UserActivationController,VehicleController};
+use App\Http\Controllers\Api\{ProductController,ReceiptController,StockOutController,InventoryController,StatsController,CategoryController,UserController,AuthController,UserActivationController,VehicleController,MaintenanceController};
 
 // Routes publiques (pas d'authentification)
 Route::post('auth/login', [AuthController::class,'login']);
@@ -24,6 +24,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Sorties
     Route::get('stockouts', [StockOutController::class,'index']);
     Route::post('stockouts', [StockOutController::class,'store']);
+    Route::post('stockouts/{id}/validate', [StockOutController::class,'validate']);
+    Route::post('stockouts/{id}/return', [StockOutController::class,'return']);
 
     // Inventaires
     Route::get('inventories', [InventoryController::class,'index']);
@@ -47,6 +49,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('vehicles', [VehicleController::class,'store']);
     Route::post('vehicles/assign', [VehicleController::class,'assign']);
     Route::post('vehicles/{id}/unassign', [VehicleController::class,'unassign']);
+Route::post('vehicles/{id}/reform', [VehicleController::class,'reform']);
+
+    // Maintenances
+    Route::get('maintenances', [MaintenanceController::class,'index']);
+    Route::post('maintenances', [MaintenanceController::class,'store']);
 
     // Authentification protégée
     Route::post('auth/logout', [AuthController::class,'logout']);

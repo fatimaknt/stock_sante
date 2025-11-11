@@ -2,7 +2,7 @@ import React, { FormEvent, useEffect, useMemo, useState, useRef } from 'react';
 import Layout from '../components/Layout.tsx';
 import TopBar from '../components/TopBar.tsx';
 import { useSettings } from '../contexts/SettingsContext';
-import { MagnifyingGlassIcon, ChevronDownIcon, PlusIcon, XMarkIcon, CubeIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ChevronDownIcon, PlusIcon, XMarkIcon, CubeIcon, DocumentArrowDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api.ts';
 
 type Product = {
@@ -48,6 +48,10 @@ export default function ProductsPage(): JSX.Element {
     const [form, setForm] = useState({ ref: '', name: '', category_id: '', quantity: 0, price: 0, critical_level: 10, supplier: '', acquirer: '', beneficiary: '', acquired_at: '' });
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const statusDropdownRef = useRef<HTMLDivElement>(null);
+    
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
 
     // Récupérer les acquéreurs uniques
     const uniqueAcquirers = useMemo(() => {
@@ -350,7 +354,10 @@ export default function ProductsPage(): JSX.Element {
                             <input
                                 type="text"
                                 value={search}
-                                onChange={e => setSearch(e.target.value)}
+                                onChange={e => {
+                                    setSearch(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 placeholder="Rechercher par référence, nom ou catégorie..."
                                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm"
                             />
@@ -375,6 +382,7 @@ export default function ProductsPage(): JSX.Element {
                                             e.stopPropagation();
                                             setSelectedStatus('Tous');
                                             setIsStatusDropdownOpen(false);
+                                            setCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Tous' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
                                     >
@@ -385,6 +393,7 @@ export default function ProductsPage(): JSX.Element {
                                             e.stopPropagation();
                                             setSelectedStatus('Normal');
                                             setIsStatusDropdownOpen(false);
+                                            setCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Normal' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
                                     >
@@ -395,6 +404,7 @@ export default function ProductsPage(): JSX.Element {
                                             e.stopPropagation();
                                             setSelectedStatus('Faible');
                                             setIsStatusDropdownOpen(false);
+                                            setCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Faible' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
                                     >
@@ -405,6 +415,7 @@ export default function ProductsPage(): JSX.Element {
                                             e.stopPropagation();
                                             setSelectedStatus('Critique');
                                             setIsStatusDropdownOpen(false);
+                                            setCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Critique' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
                                     >
@@ -418,7 +429,10 @@ export default function ProductsPage(): JSX.Element {
                         <div className="relative">
                             <select
                                 value={selectedCategory}
-                                onChange={(e) => setSelectedCategory(e.target.value)}
+                                onChange={(e) => {
+                                    setSelectedCategory(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[180px] shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             >
                                 <option value="">Toutes les catégories</option>
@@ -434,7 +448,10 @@ export default function ProductsPage(): JSX.Element {
                             <input
                                 type="date"
                                 value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
+                                onChange={(e) => {
+                                    setSelectedDate(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 min-w-[150px]"
                                 placeholder="Filtrer par date"
                             />
@@ -453,7 +470,10 @@ export default function ProductsPage(): JSX.Element {
                         <div className="relative">
                             <select
                                 value={selectedAcquirer}
-                                onChange={(e) => setSelectedAcquirer(e.target.value)}
+                                onChange={(e) => {
+                                    setSelectedAcquirer(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[180px] shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             >
                                 <option value="">Tous les acquéreurs</option>
@@ -478,6 +498,12 @@ export default function ProductsPage(): JSX.Element {
                                 <p className="text-sm text-gray-500">{filtered.length} produit{filtered.length > 1 ? 's' : ''}</p>
                             </div>
                         </div>
+                        <div className="flex items-center gap-4">
+                            {filtered.length > itemsPerPage && (
+                                <p className="text-sm text-gray-600">
+                                    {((currentPage - 1) * itemsPerPage + 1)} - {Math.min(currentPage * itemsPerPage, filtered.length)} sur {filtered.length}
+                                </p>
+                            )}
                         {filtered.length > 0 && (
                             <button
                                 onClick={exportAllProductsExcel}
@@ -488,6 +514,7 @@ export default function ProductsPage(): JSX.Element {
                                 <span>Exporter tout en Excel</span>
                             </button>
                         )}
+                        </div>
                     </div>
                     <div className="border rounded-xl overflow-hidden">
                         <table className="min-w-full text-md">
@@ -511,7 +538,9 @@ export default function ProductsPage(): JSX.Element {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filtered.map(r => (
+                                    filtered
+                                        .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                        .map(r => (
                                         <tr key={r.id} className="border-t hover:bg-emerald-50 transition-colors">
                                             <td className="px-6 py-5 text-gray-700 font-mono text-sm">{r.ref || '-'}</td>
                                             <td className="px-6 py-5 font-semibold text-gray-900">{r.name}</td>
@@ -556,6 +585,74 @@ export default function ProductsPage(): JSX.Element {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Pagination */}
+                    {filtered.length > itemsPerPage && (
+                        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        currentPage === 1
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                    }`}
+                                >
+                                    <ChevronLeftIcon className="w-5 h-5" />
+                                    <span>Précédent</span>
+                                </button>
+                                <div className="flex items-center gap-1">
+                                    {Array.from({ length: Math.ceil(filtered.length / itemsPerPage) }, (_, i) => i + 1)
+                                        .filter(page => {
+                                            const totalPages = Math.ceil(filtered.length / itemsPerPage);
+                                            if (totalPages <= 7) return true;
+                                            if (page === 1 || page === totalPages) return true;
+                                            if (Math.abs(page - currentPage) <= 1) return true;
+                                            return false;
+                                        })
+                                        .map((page, index, array) => {
+                                            const totalPages = Math.ceil(filtered.length / itemsPerPage);
+                                            const showEllipsis = index > 0 && array[index - 1] !== page - 1;
+                                            const showEllipsisAfter = index < array.length - 1 && array[index + 1] !== page + 1 && page !== totalPages;
+                                            
+                                            return (
+                                                <React.Fragment key={page}>
+                                                    {showEllipsis && (
+                                                        <span className="px-2 text-gray-500">...</span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => setCurrentPage(page)}
+                                                        className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${
+                                                            currentPage === page
+                                                                ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg'
+                                                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                                        }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                    {showEllipsisAfter && (
+                                                        <span className="px-2 text-gray-500">...</span>
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                </div>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filtered.length / itemsPerPage), prev + 1))}
+                                    disabled={currentPage >= Math.ceil(filtered.length / itemsPerPage)}
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        currentPage >= Math.ceil(filtered.length / itemsPerPage)
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                    }`}
+                                >
+                                    <span>Suivant</span>
+                                    <ChevronRightIcon className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Modal */}

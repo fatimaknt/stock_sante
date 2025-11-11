@@ -28,9 +28,6 @@ export default function TopBar() {
         // Charger le nombre d'alertes non lues
         const loadAlerts = async () => {
             try {
-                const stats = await getJSON(API('/stats')) as any;
-                const totalAlerts = (stats.lowStock || 0) + (stats.outOfStock || 0);
-
                 // Récupérer les alertes lues depuis localStorage
                 const saved = localStorage.getItem('readAlerts');
                 let readIds: number[] = [];
@@ -46,7 +43,7 @@ export default function TopBar() {
                 const productsData = await getJSON(API('/products')) as any;
                 const products = (productsData.items || []) as any[];
 
-                // Compter uniquement les alertes non lues
+                // Compter uniquement les alertes non lues de produits
                 let unreadCount = 0;
                 products.forEach(product => {
                     const isAlert = product.quantity <= 0 || (product.quantity <= (product.critical_level || 10));
@@ -54,6 +51,29 @@ export default function TopBar() {
                         unreadCount++;
                     }
                 });
+
+                // Charger les maintenances et compter les alertes
+                try {
+                    const maintenancesData = await getJSON(API('/maintenances')) as any[];
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const in7Days = new Date(today);
+                    in7Days.setDate(in7Days.getDate() + 7);
+
+                    maintenancesData.forEach(maintenance => {
+                        if (maintenance.next_maintenance_date) {
+                            const nextDate = new Date(maintenance.next_maintenance_date);
+                            nextDate.setHours(0, 0, 0, 0);
+                            const maintenanceAlertId = maintenance.id + 1000000;
+                            
+                            if ((nextDate <= today || nextDate <= in7Days) && !readIds.includes(maintenanceAlertId)) {
+                                unreadCount++;
+                            }
+                        }
+                    });
+                } catch (err) {
+                    console.error('Erreur lors du chargement des maintenances:', err);
+                }
 
                 setNotifications(unreadCount);
             } catch (error) {

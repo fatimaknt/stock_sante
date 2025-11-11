@@ -1,7 +1,7 @@
 import React, { useEffect, useState, FormEvent, useRef } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
-import { ArrowRightOnRectangleIcon, PlusIcon, TrashIcon, ArrowTrendingUpIcon, MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { ArrowRightOnRectangleIcon, PlusIcon, TrashIcon, ArrowTrendingUpIcon, MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, DocumentArrowDownIcon, ChevronLeftIcon, ChevronRightIcon, CheckCircleIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api';
 import { jsPDF } from 'jspdf';
 
@@ -49,6 +49,16 @@ export default function StockOutPage() {
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const typeDropdownRef = useRef<HTMLDivElement>(null);
     const statusDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Pagination
+    const [stockOutsCurrentPage, setStockOutsCurrentPage] = useState(1);
+    const [stockOutsItemsPerPage] = useState(10);
+
+    // États pour les modals de validation/retour
+    const [stockOutToValidate, setStockOutToValidate] = useState<StockOutRow | null>(null);
+    const [stockOutToReturn, setStockOutToReturn] = useState<StockOutRow | null>(null);
+    const [isValidateModalOpen, setIsValidateModalOpen] = useState(false);
+    const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
 
     useEffect(() => {
         if (!date) {
@@ -181,6 +191,66 @@ export default function StockOutPage() {
             }
 
             setError(errorMessage);
+            setSuccess('');
+        }
+    };
+
+    const openValidateModal = (stockOut: StockOutRow) => {
+        setStockOutToValidate(stockOut);
+        setIsValidateModalOpen(true);
+    };
+
+    const closeValidateModal = () => {
+        setIsValidateModalOpen(false);
+        setStockOutToValidate(null);
+    };
+
+    const confirmValidate = async () => {
+        if (!stockOutToValidate) return;
+
+        try {
+            await getJSON(API(`/stockouts/${stockOutToValidate.id}/validate`), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            closeValidateModal();
+            setSuccess('Sortie validée avec succès!');
+            setError('');
+            await load();
+        } catch (err: any) {
+            console.error('Erreur lors de la validation:', err);
+            setError(err?.message || 'Erreur lors de la validation de la sortie');
+            setSuccess('');
+        }
+    };
+
+    const openReturnModal = (stockOut: StockOutRow) => {
+        setStockOutToReturn(stockOut);
+        setIsReturnModalOpen(true);
+    };
+
+    const closeReturnModal = () => {
+        setIsReturnModalOpen(false);
+        setStockOutToReturn(null);
+    };
+
+    const confirmReturn = async () => {
+        if (!stockOutToReturn) return;
+
+        try {
+            await getJSON(API(`/stockouts/${stockOutToReturn.id}/return`), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            closeReturnModal();
+            setSuccess('Sortie retournée avec succès, stock réintégré!');
+            setError('');
+            await load();
+        } catch (err: any) {
+            console.error('Erreur lors du retour:', err);
+            setError(err?.message || 'Erreur lors du retour de la sortie');
             setSuccess('');
         }
     };
@@ -672,7 +742,10 @@ export default function StockOutPage() {
                                 type="text"
                                 placeholder="Rechercher par produit, bénéficiaire ou observation..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setStockOutsCurrentPage(1);
+                                }}
                                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
                             />
                         </div>
@@ -697,6 +770,7 @@ export default function StockOutPage() {
                                             e.stopPropagation();
                                             setSelectedType('Tous');
                                             setIsTypeDropdownOpen(false);
+                                            setStockOutsCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedType === 'Tous' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
                                     >
@@ -707,6 +781,7 @@ export default function StockOutPage() {
                                             e.stopPropagation();
                                             setSelectedType('Définitive');
                                             setIsTypeDropdownOpen(false);
+                                            setStockOutsCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedType === 'Définitive' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
                                     >
@@ -717,6 +792,7 @@ export default function StockOutPage() {
                                             e.stopPropagation();
                                             setSelectedType('Affectation');
                                             setIsTypeDropdownOpen(false);
+                                            setStockOutsCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedType === 'Affectation' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
                                     >
@@ -727,6 +803,7 @@ export default function StockOutPage() {
                                             e.stopPropagation();
                                             setSelectedType('Provisoire');
                                             setIsTypeDropdownOpen(false);
+                                            setStockOutsCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedType === 'Provisoire' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
                                     >
@@ -756,6 +833,7 @@ export default function StockOutPage() {
                                             e.stopPropagation();
                                             setSelectedStatus('Tous');
                                             setIsStatusDropdownOpen(false);
+                                            setStockOutsCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Tous' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
                                     >
@@ -766,6 +844,7 @@ export default function StockOutPage() {
                                             e.stopPropagation();
                                             setSelectedStatus('Complétée');
                                             setIsStatusDropdownOpen(false);
+                                            setStockOutsCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Complétée' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
                                     >
@@ -776,6 +855,7 @@ export default function StockOutPage() {
                                             e.stopPropagation();
                                             setSelectedStatus('Retournée');
                                             setIsStatusDropdownOpen(false);
+                                            setStockOutsCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Retournée' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
                                     >
@@ -786,6 +866,7 @@ export default function StockOutPage() {
                                             e.stopPropagation();
                                             setSelectedStatus('Aucun');
                                             setIsStatusDropdownOpen(false);
+                                            setStockOutsCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${selectedStatus === 'Aucun' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
                                     >
@@ -800,7 +881,10 @@ export default function StockOutPage() {
                             <input
                                 type="date"
                                 value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
+                                onChange={(e) => {
+                                    setSelectedDate(e.target.value);
+                                    setStockOutsCurrentPage(1);
+                                }}
                                 className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 min-w-[150px] shadow-sm transition-all"
                             />
                         </div>
@@ -819,6 +903,12 @@ export default function StockOutPage() {
                                 <p className="text-sm text-gray-500">{filteredRows.length} sortie{filteredRows.length > 1 ? 's' : ''}</p>
                             </div>
                         </div>
+                        <div className="flex items-center gap-4">
+                            {filteredRows.length > stockOutsItemsPerPage && (
+                                <p className="text-sm text-gray-600">
+                                    {((stockOutsCurrentPage - 1) * stockOutsItemsPerPage + 1)} - {Math.min(stockOutsCurrentPage * stockOutsItemsPerPage, filteredRows.length)} sur {filteredRows.length}
+                                </p>
+                            )}
                         {filteredRows.length > 0 && (
                             <button
                                 onClick={exportStockOutPDF}
@@ -829,6 +919,7 @@ export default function StockOutPage() {
                                 <span>Exporter tout en PDF</span>
                             </button>
                         )}
+                        </div>
                     </div>
                     <div className="border rounded-xl overflow-hidden">
                         <table className="min-w-full text-md">
@@ -853,8 +944,12 @@ export default function StockOutPage() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredRows.map(r => {
+                                    filteredRows
+                                        .slice((stockOutsCurrentPage - 1) * stockOutsItemsPerPage, stockOutsCurrentPage * stockOutsItemsPerPage)
+                                        .map(r => {
                                         const product = products.find(p => p.id === r.product_id);
+                                        // Vérifier si c'est une sortie provisoire sans statut
+                                        const isProvisoireWithoutStatus = r.exit_type === 'Provisoire' && (!r.status || r.status === '' || r.status === null);
                                         return (
                                             <tr key={r.id} className="border-t hover:bg-red-50 transition-colors">
                                                 <td className="px-6 py-5 font-medium text-gray-700">{formatDate(r.movement_date)}</td>
@@ -874,10 +969,37 @@ export default function StockOutPage() {
                                                             {r.status}
                                                         </span>
                                                     )}
+                                                    {!r.status && r.exit_type === 'Provisoire' && (
+                                                        <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
+                                                            En attente
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-5 text-gray-600">{r.notes || '-'}</td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex items-center gap-2">
+                                                        {/* Bouton Valider - visible uniquement pour les sorties provisoires non retournées */}
+                                                        {isProvisoireWithoutStatus && (
+                                                            <button
+                                                                onClick={() => openValidateModal(r)}
+                                                                className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all transform hover:scale-110"
+                                                                aria-label="valider cette sortie provisoire"
+                                                                title="Valider cette sortie provisoire (transformer en définitive)"
+                                                            >
+                                                                <CheckCircleIcon className="w-5 h-5" />
+                                                            </button>
+                                                        )}
+                                                        {/* Bouton Retourner - visible uniquement pour les sorties provisoires non retournées */}
+                                                        {isProvisoireWithoutStatus && (
+                                                            <button
+                                                                onClick={() => openReturnModal(r)}
+                                                                className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all transform hover:scale-110"
+                                                                aria-label="retourner cette sortie provisoire"
+                                                                title="Retourner cette sortie provisoire (réintégrer le stock)"
+                                                            >
+                                                                <ArrowUturnLeftIcon className="w-5 h-5" />
+                                                            </button>
+                                                        )}
                                                         <button
                                                             onClick={() => exportSingleStockOutPDF(r)}
                                                             className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-600 transition-all transform hover:scale-110"
@@ -901,6 +1023,74 @@ export default function StockOutPage() {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Pagination */}
+                    {filteredRows.length > stockOutsItemsPerPage && (
+                        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setStockOutsCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={stockOutsCurrentPage === 1}
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        stockOutsCurrentPage === 1
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                    }`}
+                                >
+                                    <ChevronLeftIcon className="w-5 h-5" />
+                                    <span>Précédent</span>
+                                </button>
+                                <div className="flex items-center gap-1">
+                                    {Array.from({ length: Math.ceil(filteredRows.length / stockOutsItemsPerPage) }, (_, i) => i + 1)
+                                        .filter(page => {
+                                            const totalPages = Math.ceil(filteredRows.length / stockOutsItemsPerPage);
+                                            if (totalPages <= 7) return true;
+                                            if (page === 1 || page === totalPages) return true;
+                                            if (Math.abs(page - stockOutsCurrentPage) <= 1) return true;
+                                            return false;
+                                        })
+                                        .map((page, index, array) => {
+                                            const totalPages = Math.ceil(filteredRows.length / stockOutsItemsPerPage);
+                                            const showEllipsis = index > 0 && array[index - 1] !== page - 1;
+                                            const showEllipsisAfter = index < array.length - 1 && array[index + 1] !== page + 1 && page !== totalPages;
+                                            
+                                            return (
+                                                <React.Fragment key={page}>
+                                                    {showEllipsis && (
+                                                        <span className="px-2 text-gray-500">...</span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => setStockOutsCurrentPage(page)}
+                                                        className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${
+                                                            stockOutsCurrentPage === page
+                                                                ? 'bg-gradient-to-r from-red-600 to-pink-600 text-white shadow-lg'
+                                                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                                        }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                    {showEllipsisAfter && (
+                                                        <span className="px-2 text-gray-500">...</span>
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                </div>
+                                <button
+                                    onClick={() => setStockOutsCurrentPage(prev => Math.min(Math.ceil(filteredRows.length / stockOutsItemsPerPage), prev + 1))}
+                                    disabled={stockOutsCurrentPage >= Math.ceil(filteredRows.length / stockOutsItemsPerPage)}
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        stockOutsCurrentPage >= Math.ceil(filteredRows.length / stockOutsItemsPerPage)
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                    }`}
+                                >
+                                    <span>Suivant</span>
+                                    <ChevronRightIcon className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Top 5 Bénéficiaires */}
@@ -928,6 +1118,86 @@ export default function StockOutPage() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal de validation */}
+                {isValidateModalOpen && stockOutToValidate && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+                            <div className="p-6">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                                        <CheckCircleIcon className="w-6 h-6 text-emerald-600" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-900">Valider la sortie provisoire</h3>
+                                </div>
+                                <p className="text-gray-700 mb-6">
+                                    Êtes-vous sûr de vouloir transformer cette sortie provisoire en sortie définitive ?
+                                    <br /><br />
+                                    <span className="font-semibold">Produit:</span> {products.find(p => p.id === stockOutToValidate.product_id)?.name || `Produit #${stockOutToValidate.product_id}`}
+                                    <br />
+                                    <span className="font-semibold">Quantité:</span> {stockOutToValidate.quantity}
+                                    <br />
+                                    <span className="font-semibold">Bénéficiaire:</span> {stockOutToValidate.beneficiary || 'ND'}
+                                </p>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={closeValidateModal}
+                                        className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                                    >
+                                        Annuler
+                                    </button>
+                                    <button
+                                        onClick={confirmValidate}
+                                        className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg shadow-lg hover:from-emerald-700 hover:to-emerald-800 transition-all font-medium"
+                                    >
+                                        Valider
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal de retour */}
+                {isReturnModalOpen && stockOutToReturn && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+                            <div className="p-6">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <ArrowUturnLeftIcon className="w-6 h-6 text-blue-600" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-900">Retourner la sortie provisoire</h3>
+                                </div>
+                                <p className="text-gray-700 mb-6">
+                                    Êtes-vous sûr de vouloir retourner cette sortie provisoire ?
+                                    <br /><br />
+                                    Le stock sera réintégré dans l'inventaire.
+                                    <br /><br />
+                                    <span className="font-semibold">Produit:</span> {products.find(p => p.id === stockOutToReturn.product_id)?.name || `Produit #${stockOutToReturn.product_id}`}
+                                    <br />
+                                    <span className="font-semibold">Quantité:</span> {stockOutToReturn.quantity}
+                                    <br />
+                                    <span className="font-semibold">Bénéficiaire:</span> {stockOutToReturn.beneficiary || 'ND'}
+                                </p>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={closeReturnModal}
+                                        className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                                    >
+                                        Annuler
+                                    </button>
+                                    <button
+                                        onClick={confirmReturn}
+                                        className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium"
+                                    >
+                                        Retourner
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}

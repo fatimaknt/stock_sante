@@ -23,6 +23,11 @@ class VehicleController extends Controller
                 'reception_commission' => $v->reception_commission,
                 'observations' => $v->observations,
                 'status' => $v->status,
+                'reformed_at' => $v->reformed_at ? $v->reformed_at->format('Y-m-d') : null,
+                'reform_reason' => $v->reform_reason,
+                'reform_agent' => $v->reform_agent,
+                'reform_destination' => $v->reform_destination,
+                'reform_notes' => $v->reform_notes,
                 'assignment' => $v->assignment ? [
                     'id' => $v->assignment->id,
                     'region' => $v->assignment->region,
@@ -102,6 +107,40 @@ class VehicleController extends Controller
 
             $vehicle->assignment()->delete();
             $vehicle->update(['status' => 'pending']);
+            return response()->json(['success' => true]);
+        });
+    }
+
+    public function reform(Request $r, $id)
+    {
+        $v = $r->validate([
+            'reform_reason' => 'required|string|in:Vétusté,Accident majeur,Coûts élevés,Fin de vie,Autre',
+            'reform_agent' => 'required|string',
+            'reform_destination' => 'required|string|in:Vente,Don,Destruction,Stockage',
+            'reform_notes' => 'nullable|string',
+        ]);
+
+        return DB::transaction(function() use($id, $v) {
+            $vehicle = Vehicle::findOrFail($id);
+
+            if ($vehicle->status === 'reformed') {
+                return response()->json(['error' => 'Ce véhicule est déjà réformé'], 400);
+            }
+
+            // Si le véhicule est affecté, on le désaffecte d'abord
+            if ($vehicle->status === 'assigned') {
+                $vehicle->assignment()->delete();
+            }
+
+            $vehicle->update([
+                'status' => 'reformed',
+                'reformed_at' => now(),
+                'reform_reason' => $v['reform_reason'],
+                'reform_agent' => $v['reform_agent'],
+                'reform_destination' => $v['reform_destination'],
+                'reform_notes' => $v['reform_notes'] ?? null,
+            ]);
+
             return response()->json(['success' => true]);
         });
     }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, FormEvent, useMemo } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
-import { PlusIcon, TrashIcon, InboxIcon, MagnifyingGlassIcon, XMarkIcon, CubeIcon, EyeIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, InboxIcon, MagnifyingGlassIcon, XMarkIcon, CubeIcon, EyeIcon, DocumentArrowDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api';
 import { useSettings } from '../contexts/SettingsContext';
 import { jsPDF } from 'jspdf';
@@ -38,6 +38,10 @@ export default function ReceiptsPage() {
     // Filtres et recherche
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFilter, setDateFilter] = useState<string>('');
+
+    // Pagination
+    const [receiptsCurrentPage, setReceiptsCurrentPage] = useState(1);
+    const [receiptsItemsPerPage] = useState(10);
 
     // États pour modification et suppression
     const [editingReceipt, setEditingReceipt] = useState<ReceiptRow | null>(null);
@@ -955,20 +959,31 @@ export default function ReceiptsPage() {
                         </div>
                         {/* Search Bar et Filtre Date */}
                         <div className="flex items-center gap-3">
+                            {filteredRows.length > receiptsItemsPerPage && (
+                                <p className="text-sm text-gray-600">
+                                    {((receiptsCurrentPage - 1) * receiptsItemsPerPage + 1)} - {Math.min(receiptsCurrentPage * receiptsItemsPerPage, filteredRows.length)} sur {filteredRows.length}
+                                </p>
+                            )}
                             <div className="relative w-80">
                                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                                 <input
                                     type="text"
                                     placeholder="Rechercher réf, fournisseur, agent, observation..."
                                     value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        setReceiptsCurrentPage(1);
+                                    }}
                                     className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm"
                                 />
                             </div>
                             <input
                                 type="date"
                                 value={dateFilter}
-                                onChange={(e) => setDateFilter(e.target.value)}
+                                onChange={(e) => {
+                                    setDateFilter(e.target.value);
+                                    setReceiptsCurrentPage(1);
+                                }}
                                 className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm"
                                 placeholder="Filtrer par date"
                             />
@@ -1014,7 +1029,9 @@ export default function ReceiptsPage() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredRows.map(r => (
+                                    filteredRows
+                                        .slice((receiptsCurrentPage - 1) * receiptsItemsPerPage, receiptsCurrentPage * receiptsItemsPerPage)
+                                        .map(r => (
                                         <tr key={r.id} className="border-t hover:bg-emerald-50 transition-colors">
                                             <td className="px-6 py-5 font-semibold text-gray-900">{r.supplier || 'ND'}</td>
                                             <td className="px-6 py-5 text-left tabular-nums font-medium text-gray-700">{r.items_count}</td>
@@ -1063,6 +1080,74 @@ export default function ReceiptsPage() {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Pagination */}
+                    {filteredRows.length > receiptsItemsPerPage && (
+                        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setReceiptsCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={receiptsCurrentPage === 1}
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        receiptsCurrentPage === 1
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                    }`}
+                                >
+                                    <ChevronLeftIcon className="w-5 h-5" />
+                                    <span>Précédent</span>
+                                </button>
+                                <div className="flex items-center gap-1">
+                                    {Array.from({ length: Math.ceil(filteredRows.length / receiptsItemsPerPage) }, (_, i) => i + 1)
+                                        .filter(page => {
+                                            const totalPages = Math.ceil(filteredRows.length / receiptsItemsPerPage);
+                                            if (totalPages <= 7) return true;
+                                            if (page === 1 || page === totalPages) return true;
+                                            if (Math.abs(page - receiptsCurrentPage) <= 1) return true;
+                                            return false;
+                                        })
+                                        .map((page, index, array) => {
+                                            const totalPages = Math.ceil(filteredRows.length / receiptsItemsPerPage);
+                                            const showEllipsis = index > 0 && array[index - 1] !== page - 1;
+                                            const showEllipsisAfter = index < array.length - 1 && array[index + 1] !== page + 1 && page !== totalPages;
+                                            
+                                            return (
+                                                <React.Fragment key={page}>
+                                                    {showEllipsis && (
+                                                        <span className="px-2 text-gray-500">...</span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => setReceiptsCurrentPage(page)}
+                                                        className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${
+                                                            receiptsCurrentPage === page
+                                                                ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg'
+                                                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                                        }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                    {showEllipsisAfter && (
+                                                        <span className="px-2 text-gray-500">...</span>
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                </div>
+                                <button
+                                    onClick={() => setReceiptsCurrentPage(prev => Math.min(Math.ceil(filteredRows.length / receiptsItemsPerPage), prev + 1))}
+                                    disabled={receiptsCurrentPage >= Math.ceil(filteredRows.length / receiptsItemsPerPage)}
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        receiptsCurrentPage >= Math.ceil(filteredRows.length / receiptsItemsPerPage)
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                    }`}
+                                >
+                                    <span>Suivant</span>
+                                    <ChevronRightIcon className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Modal de modification */}

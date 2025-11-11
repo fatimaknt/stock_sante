@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
 import { useSettings } from '../contexts/SettingsContext';
-import { BellIcon, ExclamationTriangleIcon, CheckIcon, XMarkIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
+import { BellIcon, ExclamationTriangleIcon, CheckIcon, XMarkIcon, ArrowTrendingUpIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api';
 
 type Product = {
@@ -15,10 +15,30 @@ type Product = {
     supplier?: string | null;
 };
 
+type Maintenance = {
+    id: number;
+    vehicle_id: number;
+    vehicle?: {
+        id: number;
+        plate_number: string;
+        designation: string;
+    };
+    type: string;
+    maintenance_date: string;
+    mileage?: number;
+    cost: number;
+    agent: string;
+    next_maintenance_date?: string;
+    next_maintenance_mileage?: number;
+    observations?: string;
+};
+
 type Alert = {
-    product: Product;
-    type: 'low' | 'critical';
+    product?: Product;
+    maintenance?: Maintenance;
+    type: 'low' | 'critical' | 'maintenance';
     message: string;
+    id: number; // Pour identifier l'alerte (product.id ou maintenance.id)
 };
 
 function getStatusLabel(p: { quantity: number; critical_level: number }): 'Normal' | 'Faible' | 'Critique' {
@@ -51,22 +71,68 @@ export default function AlertsPage() {
                         type: 'critical',
                         message: product.quantity === 0
                             ? 'Stock épuisé'
-                            : `Stock très faible (${product.quantity} unités restantes)`
+                            : `Stock très faible (${product.quantity} unités restantes)`,
+                        id: product.id
                     });
                 } else if (status === 'Faible') {
                     alertList.push({
                         product,
                         type: 'low',
-                        message: `Stock faible (${product.quantity} unités restantes, seuil: ${product.critical_level})`
+                        message: `Stock faible (${product.quantity} unités restantes, seuil: ${product.critical_level})`,
+                        id: product.id
                     });
                 }
             });
 
-            // Trier: critiques d'abord, puis faibles
+            // Charger les maintenances et vérifier les alertes
+            try {
+                const maintenancesData = await getJSON(API('/maintenances')) as Maintenance[];
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const in7Days = new Date(today);
+                in7Days.setDate(in7Days.getDate() + 7);
+
+                maintenancesData.forEach(maintenance => {
+                    if (maintenance.next_maintenance_date) {
+                        const nextDate = new Date(maintenance.next_maintenance_date);
+                        nextDate.setHours(0, 0, 0, 0);
+                        
+                        if (nextDate <= today) {
+                            // Maintenance en retard
+                            alertList.push({
+                                maintenance,
+                                type: 'critical',
+                                message: `Maintenance en retard pour ${maintenance.vehicle?.plate_number || 'véhicule'} - ${maintenance.vehicle?.designation || ''}`,
+                                id: maintenance.id + 1000000 // ID unique pour éviter les conflits
+                            });
+                        } else if (nextDate <= in7Days) {
+                            // Maintenance à venir dans 7 jours
+                            alertList.push({
+                                maintenance,
+                                type: 'maintenance',
+                                message: `Maintenance prévue dans ${Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))} jour(s) pour ${maintenance.vehicle?.plate_number || 'véhicule'} - ${maintenance.vehicle?.designation || ''}`,
+                                id: maintenance.id + 1000000
+                            });
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error('Erreur lors du chargement des maintenances:', err);
+            }
+
+            // Trier: critiques d'abord, puis maintenances, puis faibles
             alertList.sort((a, b) => {
-                if (a.type === 'critical' && b.type === 'low') return -1;
-                if (a.type === 'low' && b.type === 'critical') return 1;
+                if (a.type === 'critical' && b.type !== 'critical') return -1;
+                if (a.type !== 'critical' && b.type === 'critical') return 1;
+                if (a.type === 'maintenance' && b.type === 'low') return -1;
+                if (a.type === 'low' && b.type === 'maintenance') return 1;
+                if (a.product && b.product) {
                 return a.product.name.localeCompare(b.product.name);
+                }
+                if (a.maintenance && b.maintenance) {
+                    return (a.maintenance.vehicle?.plate_number || '').localeCompare(b.maintenance.vehicle?.plate_number || '');
+                }
+                return 0;
             });
 
             setAlerts(alertList);
@@ -93,16 +159,16 @@ export default function AlertsPage() {
         }
     }, []);
 
-    const markAsRead = (productId: number) => {
+    const markAsRead = (alertId: number) => {
         const newReadAlerts = new Set(readAlerts);
-        newReadAlerts.add(productId);
+        newReadAlerts.add(alertId);
         setReadAlerts(newReadAlerts);
         // Sauvegarder dans localStorage
         localStorage.setItem('readAlerts', JSON.stringify(Array.from(newReadAlerts)));
     };
 
     const markAllAsRead = () => {
-        const allIds = alerts.map(a => a.product.id);
+        const allIds = alerts.map(a => a.id);
         const newReadAlerts = new Set(allIds);
         setReadAlerts(newReadAlerts);
         localStorage.setItem('readAlerts', JSON.stringify(Array.from(newReadAlerts)));
@@ -125,9 +191,10 @@ export default function AlertsPage() {
         return 'bg-green-500 text-white';
     };
 
-    const unreadAlerts = alerts.filter(a => !readAlerts.has(a.product.id));
+    const unreadAlerts = alerts.filter(a => !readAlerts.has(a.id));
     const criticalAlerts = unreadAlerts.filter(a => a.type === 'critical');
     const lowAlerts = unreadAlerts.filter(a => a.type === 'low');
+    const maintenanceAlerts = unreadAlerts.filter(a => a.type === 'maintenance');
 
     const formatCurrency = useMemo(() => {
         const localeMap: { [key: string]: string } = {
@@ -153,7 +220,7 @@ export default function AlertsPage() {
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-4xl font-bold mb-2">Alertes</h1>
-                            <p className="text-orange-100">Gérez les alertes de stock et les notifications</p>
+                            <p className="text-orange-100">Gérez les alertes de stock, de maintenance et les notifications</p>
                         </div>
                         <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                             <BellIcon className="w-8 h-8 text-white" />
@@ -183,13 +250,13 @@ export default function AlertsPage() {
                                 <BellIcon className="w-10 h-10 text-green-600 dark:text-green-400" />
                             </div>
                             <h2 className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-2">Aucune alerte</h2>
-                            <p className="text-gray-500 dark:text-gray-400">Tous vos produits sont en stock suffisant.</p>
+                            <p className="text-gray-500 dark:text-gray-400">Tous vos produits sont en stock suffisant et aucune maintenance n'est prévue.</p>
                         </div>
                     </div>
                 ) : (
                     <>
                         {/* Résumé des alertes avec gradients */}
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
                                 <div className="flex items-center justify-between mb-4">
                                     <ExclamationTriangleIcon className="w-8 h-8 text-red-100" />
@@ -208,6 +275,16 @@ export default function AlertsPage() {
                                 <p className="text-orange-100 text-sm font-medium mb-1">Alertes de stock faible</p>
                                 <p className="text-3xl font-bold mb-1">{lowAlerts.length}</p>
                                 <p className="text-orange-100 text-xs">Sous le seuil critique</p>
+                            </div>
+
+                            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
+                                <div className="flex items-center justify-between mb-4">
+                                    <WrenchScrewdriverIcon className="w-8 h-8 text-blue-100" />
+                                    <ArrowTrendingUpIcon className="w-5 h-5 text-blue-100" />
+                                </div>
+                                <p className="text-blue-100 text-sm font-medium mb-1">Maintenances à venir</p>
+                                <p className="text-3xl font-bold mb-1">{maintenanceAlerts.length}</p>
+                                <p className="text-blue-100 text-xs">Dans les 7 prochains jours</p>
                             </div>
                         </div>
 
@@ -235,32 +312,46 @@ export default function AlertsPage() {
                             </div>
                             <div className="space-y-4">
                                 {alerts.map((alert) => {
-                                    const status = getStatusLabel(alert.product);
-                                    const isRead = readAlerts.has(alert.product.id);
+                                    const isRead = readAlerts.has(alert.id);
+                                    const isMaintenance = alert.type === 'maintenance';
+                                    const isProduct = !!alert.product;
+                                    
                                     return (
                                         <div
-                                            key={alert.product.id}
+                                            key={alert.id}
                                             className={`border rounded-xl p-6 transition-all transform hover:scale-[1.01] shadow-md ${isRead
                                                 ? 'bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 border-gray-200 dark:border-gray-600 opacity-75'
                                                 : alert.type === 'critical'
                                                     ? 'bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 border-red-300 dark:border-red-700 shadow-red-100 dark:shadow-red-900/20'
+                                                    : alert.type === 'maintenance'
+                                                        ? 'bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-300 dark:border-blue-700 shadow-blue-100 dark:shadow-blue-900/20'
                                                     : 'bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 border-orange-300 dark:border-orange-700 shadow-orange-100 dark:shadow-orange-900/20'
                                                 }`}
                                         >
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-3 mb-3">
+                                                        {isMaintenance && (
+                                                            <WrenchScrewdriverIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                                                        )}
                                                         <h3 className={`text-xl font-bold ${isRead ? 'text-gray-600 dark:text-gray-400' : 'text-gray-900 dark:text-white'}`}>
-                                                            {alert.product.name}
+                                                            {isProduct ? alert.product!.name : `${alert.maintenance!.vehicle?.plate_number} - ${alert.maintenance!.vehicle?.designation}`}
                                                         </h3>
-                                                        <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${status === 'Critique'
+                                                        {isProduct && (
+                                                            <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${getStatusLabel(alert.product!) === 'Critique'
                                                             ? 'bg-gradient-to-r from-red-600 to-red-700 text-white'
-                                                            : status === 'Faible'
+                                                                : getStatusLabel(alert.product!) === 'Faible'
                                                                 ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white'
                                                                 : 'bg-gradient-to-r from-green-600 to-green-700 text-white'
                                                             }`}>
-                                                            {status}
+                                                                {getStatusLabel(alert.product!)}
+                                                            </span>
+                                                        )}
+                                                        {isMaintenance && (
+                                                            <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                                                                Maintenance
                                                         </span>
+                                                        )}
                                                         {isRead && (
                                                             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 shadow-sm">
                                                                 <CheckIcon className="w-3 h-3" />
@@ -268,9 +359,10 @@ export default function AlertsPage() {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p className={`text-sm mb-4 font-medium ${isRead ? 'text-gray-600 dark:text-gray-400' : alert.type === 'critical' ? 'text-red-800 dark:text-red-400' : 'text-orange-800 dark:text-orange-400'}`}>
+                                                    <p className={`text-sm mb-4 font-medium ${isRead ? 'text-gray-600 dark:text-gray-400' : alert.type === 'critical' ? 'text-red-800 dark:text-red-400' : alert.type === 'maintenance' ? 'text-blue-800 dark:text-blue-400' : 'text-orange-800 dark:text-orange-400'}`}>
                                                         {alert.message}
                                                     </p>
+                                                    {isProduct && (
                                                     <div className="flex flex-wrap items-center gap-4 text-sm">
                                                         <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
                                                             <span className="font-semibold text-gray-700 dark:text-gray-300">Catégorie:</span>
@@ -291,17 +383,36 @@ export default function AlertsPage() {
                                                             </span>
                                                         )}
                                                     </div>
+                                                    )}
+                                                    {isMaintenance && alert.maintenance && (
+                                                        <div className="flex flex-wrap items-center gap-4 text-sm">
+                                                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
+                                                                <span className="font-semibold text-gray-700 dark:text-gray-300">Type:</span>
+                                                                <span className="text-gray-600 dark:text-gray-400">{alert.maintenance.type}</span>
+                                                            </span>
+                                                            {alert.maintenance.next_maintenance_date && (
+                                                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
+                                                                    <span className="font-semibold text-gray-700 dark:text-gray-300">Date prévue:</span>
+                                                                    <span className="text-gray-600 dark:text-gray-400">
+                                                                        {new Date(alert.maintenance.next_maintenance_date).toLocaleDateString('fr-FR')}
+                                                                    </span>
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="flex flex-col items-end gap-3 ml-6">
+                                                    {isProduct && (
                                                     <div className="text-right px-4 py-3 rounded-lg bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-gray-200 dark:border-gray-600 shadow-sm">
                                                         <p className={`text-2xl font-bold ${isRead ? 'text-gray-500 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
                                                             {formatCurrency(Number(alert.product.price))}
                                                         </p>
                                                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Prix unitaire</p>
                                                     </div>
+                                                    )}
                                                     {!isRead && (
                                                         <button
-                                                            onClick={() => markAsRead(alert.product.id)}
+                                                            onClick={() => markAsRead(alert.id)}
                                                             className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg shadow-lg hover:from-emerald-700 hover:to-emerald-800 transition-all transform hover:scale-105 text-sm font-medium"
                                                         >
                                                             <CheckIcon className="w-4 h-4" />

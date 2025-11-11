@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
-import { UserPlusIcon, EnvelopeIcon, XMarkIcon, EyeIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon, UserIcon, ShieldCheckIcon, ChevronDownIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
+import { UserPlusIcon, EnvelopeIcon, XMarkIcon, EyeIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon, UserIcon, ShieldCheckIcon, ChevronDownIcon, ArrowTrendingUpIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
 import { getJSON, API } from '../utils/api';
 
@@ -72,6 +72,10 @@ export default function UserPage() {
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const roleDropdownRef = useRef<HTMLDivElement>(null);
     const statusDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Pagination
+    const [usersCurrentPage, setUsersCurrentPage] = useState(1);
+    const [usersItemsPerPage] = useState(10);
 
     useEffect(() => {
         load();
@@ -418,7 +422,10 @@ export default function UserPage() {
                                 type="text"
                                 placeholder="Rechercher par nom, email ou rôle..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setUsersCurrentPage(1);
+                                }}
                                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                             />
                         </div>
@@ -443,6 +450,7 @@ export default function UserPage() {
                                             e.stopPropagation();
                                             setSelectedRole('Tous');
                                             setIsRoleDropdownOpen(false);
+                                            setUsersCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${selectedRole === 'Tous' ? 'bg-emerald-50 text-emerald-700' : ''}`}
                                     >
@@ -453,6 +461,7 @@ export default function UserPage() {
                                             e.stopPropagation();
                                             setSelectedRole('Administrateur');
                                             setIsRoleDropdownOpen(false);
+                                            setUsersCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${selectedRole === 'Administrateur' ? 'bg-emerald-50 text-emerald-700' : ''}`}
                                     >
@@ -463,6 +472,7 @@ export default function UserPage() {
                                             e.stopPropagation();
                                             setSelectedRole('Gestionnaire');
                                             setIsRoleDropdownOpen(false);
+                                            setUsersCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${selectedRole === 'Gestionnaire' ? 'bg-emerald-50 text-emerald-700' : ''}`}
                                     >
@@ -473,6 +483,7 @@ export default function UserPage() {
                                             e.stopPropagation();
                                             setSelectedRole('Utilisateur');
                                             setIsRoleDropdownOpen(false);
+                                            setUsersCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${selectedRole === 'Utilisateur' ? 'bg-emerald-50 text-emerald-700' : ''}`}
                                     >
@@ -502,6 +513,7 @@ export default function UserPage() {
                                             e.stopPropagation();
                                             setSelectedStatus('Tous');
                                             setIsStatusDropdownOpen(false);
+                                            setUsersCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${selectedStatus === 'Tous' ? 'bg-emerald-50 text-emerald-700' : ''}`}
                                     >
@@ -512,6 +524,7 @@ export default function UserPage() {
                                             e.stopPropagation();
                                             setSelectedStatus('Actif');
                                             setIsStatusDropdownOpen(false);
+                                            setUsersCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${selectedStatus === 'Actif' ? 'bg-emerald-50 text-emerald-700' : ''}`}
                                     >
@@ -522,6 +535,7 @@ export default function UserPage() {
                                             e.stopPropagation();
                                             setSelectedStatus('Inactif');
                                             setIsStatusDropdownOpen(false);
+                                            setUsersCurrentPage(1);
                                         }}
                                         className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${selectedStatus === 'Inactif' ? 'bg-emerald-50 text-emerald-700' : ''}`}
                                     >
@@ -543,6 +557,11 @@ export default function UserPage() {
                             <h2 className="text-2xl font-bold text-gray-900">Liste des Utilisateurs</h2>
                             <p className="text-sm text-gray-500">{filteredUsers.length} utilisateur{filteredUsers.length > 1 ? 's' : ''}</p>
                         </div>
+                        {filteredUsers.length > usersItemsPerPage && (
+                            <p className="text-sm text-gray-600">
+                                {((usersCurrentPage - 1) * usersItemsPerPage + 1)} - {Math.min(usersCurrentPage * usersItemsPerPage, filteredUsers.length)} sur {filteredUsers.length}
+                            </p>
+                        )}
                     </div>
                     <div className="border rounded-xl overflow-hidden">
                         <table className="min-w-full text-md">
@@ -565,7 +584,9 @@ export default function UserPage() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredUsers.map((user) => (
+                                    filteredUsers
+                                        .slice((usersCurrentPage - 1) * usersItemsPerPage, usersCurrentPage * usersItemsPerPage)
+                                        .map((user) => (
                                         <tr key={user.id} className="border-t hover:bg-blue-50 transition-colors">
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-3">
@@ -638,6 +659,74 @@ export default function UserPage() {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Pagination */}
+                    {filteredUsers.length > usersItemsPerPage && (
+                        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setUsersCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={usersCurrentPage === 1}
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        usersCurrentPage === 1
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                    }`}
+                                >
+                                    <ChevronLeftIcon className="w-5 h-5" />
+                                    <span>Précédent</span>
+                                </button>
+                                <div className="flex items-center gap-1">
+                                    {Array.from({ length: Math.ceil(filteredUsers.length / usersItemsPerPage) }, (_, i) => i + 1)
+                                        .filter(page => {
+                                            const totalPages = Math.ceil(filteredUsers.length / usersItemsPerPage);
+                                            if (totalPages <= 7) return true;
+                                            if (page === 1 || page === totalPages) return true;
+                                            if (Math.abs(page - usersCurrentPage) <= 1) return true;
+                                            return false;
+                                        })
+                                        .map((page, index, array) => {
+                                            const totalPages = Math.ceil(filteredUsers.length / usersItemsPerPage);
+                                            const showEllipsis = index > 0 && array[index - 1] !== page - 1;
+                                            const showEllipsisAfter = index < array.length - 1 && array[index + 1] !== page + 1 && page !== totalPages;
+                                            
+                                            return (
+                                                <React.Fragment key={page}>
+                                                    {showEllipsis && (
+                                                        <span className="px-2 text-gray-500">...</span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => setUsersCurrentPage(page)}
+                                                        className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${
+                                                            usersCurrentPage === page
+                                                                ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg'
+                                                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                                        }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                    {showEllipsisAfter && (
+                                                        <span className="px-2 text-gray-500">...</span>
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                </div>
+                                <button
+                                    onClick={() => setUsersCurrentPage(prev => Math.min(Math.ceil(filteredUsers.length / usersItemsPerPage), prev + 1))}
+                                    disabled={usersCurrentPage >= Math.ceil(filteredUsers.length / usersItemsPerPage)}
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        usersCurrentPage >= Math.ceil(filteredUsers.length / usersItemsPerPage)
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                    }`}
+                                >
+                                    <span>Suivant</span>
+                                    <ChevronRightIcon className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Create User Modal */}
