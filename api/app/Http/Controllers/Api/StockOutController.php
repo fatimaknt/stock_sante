@@ -1,15 +1,17 @@
 <?php
 namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
-use App\Models\{StockMovement,Product};
+use App\Models\{StockMovement,Product,PendingOperation};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class StockOutController extends Controller
 {
     public function index()
     {
-        return StockMovement::where('type', 'stockout')
+        // Récupérer les sorties approuvées de la table stock_movements
+        $approvedStockOuts = StockMovement::where('type', 'stockout')
             ->with('product')
             ->latest()
             ->get()
@@ -25,9 +27,43 @@ class StockOutController extends Controller
                     'notes' => $m->notes,
                     'movement_date' => $m->movement_date,
                     'exit_type' => $m->exit_type,
-                    'status' => $m->status,
+                    'status' => $m->status ?? 'Complétée',
+                    'pending_operation_id' => null,
                 ];
             });
+
+        // Récupérer les sorties en attente/rejetées de pending_operations
+        $pendingStockOuts = PendingOperation::with(['user', 'approver'])
+            ->where('type', 'stockout')
+            ->whereIn('status', ['pending', 'rejected'])
+            ->latest()
+            ->get()
+            ->map(function($op) {
+                $data = $op->data;
+                return [
+                    'id' => 'pending_' . $op->id,
+                    'product_id' => $data['product_id'] ?? null,
+                    'product' => null, // Sera résolu côté frontend
+                    'quantity' => $data['quantity'] ?? 0,
+                    'price' => 0,
+                    'beneficiary' => $data['beneficiary'] ?? null,
+                    'agent' => $data['agent'] ?? null,
+                    'notes' => $data['notes'] ?? null,
+                    'movement_date' => $data['movement_date'] ?? null,
+                    'exit_type' => $data['exit_type'] ?? null,
+                    'status' => $op->status,
+                    'pending_operation_id' => $op->id,
+                    'created_at' => $op->created_at ? $op->created_at->toDateTimeString() : null,
+                ];
+            });
+
+        // Combiner et trier par date
+        return $approvedStockOuts->concat($pendingStockOuts)->sortByDesc(function($r) {
+            if (isset($r['created_at'])) {
+                return $r['created_at'];
+            }
+            return $r['movement_date'] ?? '1970-01-01';
+        })->values();
     }
 
     public function store(Request $r)
@@ -44,29 +80,48 @@ class StockOutController extends Controller
                 'status' => 'nullable|string',
             ]);
 
-            return DB::transaction(function() use($v) {
-                // Pour les sorties provisoires, le status doit être null
-                // Pour les autres, le status par défaut est 'Complétée'
-                $defaultStatus = ($v['exit_type'] ?? null) === 'Provisoire' ? null : 'Complétée';
-                
-                // Les sorties n'ont pas de prix, donc on ne l'inclut pas
-                $data = [
-                    'type' => 'stockout',
-                    'product_id' => $v['product_id'],
-                    'quantity' => $v['quantity'],
-                    'movement_date' => $v['movement_date'],
-                    'beneficiary' => $v['beneficiary'] ?? null,
-                    'agent' => $v['agent'] ?? null,
-                    'notes' => $v['notes'] ?? null,
-                    'exit_type' => $v['exit_type'] ?? null,
-                    'status' => $v['status'] ?? $defaultStatus,
-                ];
+            $user = Auth::user();
 
-                $m = StockMovement::create($data);
+            // Si l'utilisateur est admin, exécuter directement
+            if ($user->role === 'Administrateur') {
+                return DB::transaction(function() use($v) {
+                    // Pour les sorties provisoires, le status doit être null
+                    // Pour les autres, le status par défaut est 'Complétée'
+                    $defaultStatus = ($v['exit_type'] ?? null) === 'Provisoire' ? null : 'Complétée';
+                    
+                    // Les sorties n'ont pas de prix, donc on ne l'inclut pas
+                    $data = [
+                        'type' => 'stockout',
+                        'product_id' => $v['product_id'],
+                        'quantity' => $v['quantity'],
+                        'movement_date' => $v['movement_date'],
+                        'beneficiary' => $v['beneficiary'] ?? null,
+                        'agent' => $v['agent'] ?? null,
+                        'notes' => $v['notes'] ?? null,
+                        'exit_type' => $v['exit_type'] ?? null,
+                        'status' => $v['status'] ?? $defaultStatus,
+                    ];
 
-                Product::where('id', $v['product_id'])->decrement('quantity', $v['quantity']);
-                return response()->json(['id' => $m->id], 201);
-            });
+                    $m = StockMovement::create($data);
+
+                    Product::where('id', $v['product_id'])->decrement('quantity', $v['quantity']);
+                    return response()->json(['id' => $m->id], 201);
+                });
+            }
+
+            // Sinon, créer une demande en attente
+            $pendingOperation = PendingOperation::create([
+                'type' => 'stockout',
+                'data' => $v,
+                'user_id' => $user->id,
+                'status' => 'pending',
+            ]);
+
+            return response()->json([
+                'message' => 'Votre demande de sortie a été créée et est en attente d\'approbation',
+                'pending_operation_id' => $pendingOperation->id,
+            ], 202);
+
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Erreur de validation',

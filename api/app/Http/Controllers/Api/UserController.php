@@ -16,6 +16,13 @@ class UserController extends Controller
 {
     public function index()
     {
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+        
+        // Seuls les admins peuvent voir la liste des utilisateurs
+        if ($currentUser->role !== 'Administrateur') {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
         return User::orderByDesc('id')->get()->map(function ($user) {
             return [
                 'id' => $user->id,
@@ -31,6 +38,13 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+        
+        // Seuls les admins peuvent créer des utilisateurs
+        if ($currentUser->role !== 'Administrateur') {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -54,6 +68,13 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+        
+        // Seuls les admins peuvent modifier des utilisateurs
+        if ($currentUser->role !== 'Administrateur') {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
@@ -81,12 +102,26 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+        
+        // Seuls les admins peuvent supprimer des utilisateurs
+        if ($currentUser->role !== 'Administrateur') {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
         $user->delete();
         return ['deleted' => true];
     }
 
     public function invite(Request $request)
     {
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+        
+        // Seuls les admins peuvent inviter des utilisateurs
+        if ($currentUser->role !== 'Administrateur') {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -118,11 +153,12 @@ class UserController extends Controller
         $token = Str::random(64);
         $expiresAt = now()->addHours(24);
 
+        // TOUJOURS utiliser les permissions par défaut basées sur le rôle pour garantir la sécurité
         $invitation = UserInvitation::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'role' => $data['role'],
-            'permissions' => $request->input('permissions', $this->getDefaultPermissions($data['role'])),
+            'permissions' => $this->getDefaultPermissions($data['role']),
             'token' => $token,
             'expires_at' => $expiresAt,
         ]);
@@ -144,20 +180,14 @@ class UserController extends Controller
 
     private function getDefaultPermissions($role)
     {
-        $permissions = ['Gestion complète'];
-
         switch ($role) {
             case 'Administrateur':
-                $permissions = ['Gestion complète', 'Rapports', 'Gestion stock'];
-                break;
+                return ['Gestion complète', 'Rapports', 'Gestion stock', 'Réceptions', 'Sorties', 'Inventaire', 'Alertes', 'Administration'];
             case 'Gestionnaire':
-                $permissions = ['Gestion complète', 'Gestion stock'];
-                break;
-            default:
-                $permissions = ['Gestion complète'];
+                return ['Gestion stock', 'Réceptions', 'Sorties', 'Inventaire', 'Rapports'];
+            default: // Utilisateur
+                return ['Gestion stock', 'Réceptions', 'Sorties', 'Inventaire'];
         }
-
-        return $permissions;
     }
 }
 

@@ -3,15 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Vehicle, VehicleAssignment};
+use App\Models\{Vehicle, VehicleAssignment, PendingOperation};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class VehicleController extends Controller
 {
     public function index()
     {
-        return Vehicle::with(['assignment'])->latest()->get()->map(function($v) {
+        // Récupérer les véhicules approuvés de la table vehicles
+        $approvedVehicles = Vehicle::with(['assignment'])->latest()->get()->map(function($v) {
             return [
                 'id' => $v->id,
                 'type' => $v->type,
@@ -36,8 +38,42 @@ class VehicleController extends Controller
                     'district' => $v->assignment->district,
                     'assigned_at' => $v->assignment->assigned_at->format('Y-m-d'),
                 ] : null,
+                'pending_operation_id' => null,
             ];
         });
+
+        // Récupérer les véhicules en attente/rejetés de pending_operations
+        $pendingVehicles = PendingOperation::with(['user', 'approver'])
+            ->where('type', 'vehicle')
+            ->whereIn('status', ['pending', 'rejected'])
+            ->latest()
+            ->get()
+            ->map(function($op) {
+                $data = $op->data;
+                return [
+                    'id' => 'pending_' . $op->id,
+                    'type' => $data['type'] ?? null,
+                    'designation' => $data['designation'] ?? '',
+                    'chassis_number' => $data['chassis_number'] ?? null,
+                    'plate_number' => $data['plate_number'] ?? null,
+                    'acquisition_date' => $data['acquisition_date'] ?? null,
+                    'acquirer' => $data['acquirer'] ?? null,
+                    'reception_commission' => $data['reception_commission'] ?? null,
+                    'observations' => $data['observations'] ?? null,
+                    'status' => $op->status,
+                    'assignment' => null,
+                    'pending_operation_id' => $op->id,
+                    'created_at' => $op->created_at ? $op->created_at->toDateTimeString() : null,
+                ];
+            });
+
+        // Combiner et trier par date
+        return $approvedVehicles->concat($pendingVehicles)->sortByDesc(function($r) {
+            if (isset($r['created_at'])) {
+                return $r['created_at'];
+            }
+            return $r['acquisition_date'] ?? '1970-01-01';
+        })->values();
     }
 
     public function store(Request $r)
@@ -53,8 +89,26 @@ class VehicleController extends Controller
             'observations' => 'nullable|string',
         ]);
 
-        $vehicle = Vehicle::create($v + ['status' => 'pending']);
-        return response()->json(['id' => $vehicle->id], 201);
+        $user = Auth::user();
+
+        // Si l'utilisateur est admin, créer directement
+        if ($user->role === 'Administrateur') {
+            $vehicle = Vehicle::create($v + ['status' => 'pending']);
+            return response()->json(['id' => $vehicle->id], 201);
+        }
+
+        // Sinon, créer une demande en attente
+        $pendingOperation = PendingOperation::create([
+            'type' => 'vehicle',
+            'data' => $v,
+            'user_id' => $user->id,
+            'status' => 'pending',
+        ]);
+
+        return response()->json([
+            'message' => 'Votre demande de véhicule a été créée et est en attente d\'approbation',
+            'pending_operation_id' => $pendingOperation->id,
+        ], 202);
     }
 
     public function assign(Request $r)

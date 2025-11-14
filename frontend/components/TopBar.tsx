@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { BellIcon, UserCircleIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/router';
 import { useSidebar } from '../contexts/SidebarContext';
+import { useAuth } from '../contexts/AuthContext';
 import { API, getJSON } from '../utils/api';
 
 export default function TopBar() {
     const { toggle, isCollapsed } = useSidebar();
     const router = useRouter();
+    const { user, reload } = useAuth();
     const [notifications, setNotifications] = useState(0);
     const [userEmail, setUserEmail] = useState<string>('');
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -23,7 +25,11 @@ export default function TopBar() {
                 console.error('Erreur lors du chargement de l\'utilisateur:', error);
             }
         };
-        loadUser();
+        if (!user) {
+            loadUser();
+        } else {
+            setUserEmail(user.email);
+        }
 
         // Charger le nombre d'alertes non lues
         const loadAlerts = async () => {
@@ -116,10 +122,18 @@ export default function TopBar() {
                 });
             }
             localStorage.removeItem('auth_token');
+            // Déclencher un événement pour réinitialiser le contexte
+            window.dispatchEvent(new Event('auth-token-changed'));
+            // Réinitialiser le contexte utilisateur
+            reload();
             router.push('/login');
         } catch (error) {
             console.error('Erreur lors de la déconnexion:', error);
             localStorage.removeItem('auth_token');
+            // Déclencher un événement pour réinitialiser le contexte
+            window.dispatchEvent(new Event('auth-token-changed'));
+            // Réinitialiser le contexte utilisateur même en cas d'erreur
+            reload();
             router.push('/login');
         }
     };
@@ -179,8 +193,12 @@ export default function TopBar() {
                         <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
                             {/* User Email Header */}
                             <div className="px-5 py-4 bg-gradient-to-r from-emerald-50 to-emerald-100 border-b border-gray-200">
-                                <p className="text-sm font-semibold text-gray-900 mb-1">Profil Utilisateur</p>
-                                <p className="text-sm text-gray-600 truncate">{userEmail || 'Chargement...'}</p>
+                                <p className="text-sm font-semibold text-gray-900 mb-1">
+                                    {user?.role === 'Administrateur' ? 'Profil Administrateur' : 
+                                     user?.role === 'Gestionnaire' ? 'Profil Gestionnaire' : 
+                                     'Profil Utilisateur'}
+                                </p>
+                                <p className="text-sm text-gray-600 truncate">{userEmail || user?.email || 'Chargement...'}</p>
                             </div>
 
                             {/* Logout Button */}

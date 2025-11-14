@@ -35,7 +35,7 @@ class AuthController extends Controller
                     'password' => Hash::make(Str::random(32)), // Mot de passe aléatoire car authentification Google
                     'role' => 'Utilisateur',
                     'status' => 'Actif',
-                    'permissions' => ['Gestion complète'],
+                    'permissions' => $this->getDefaultPermissions('Utilisateur'),
                     'email_verified_at' => now(),
                 ]);
             } else {
@@ -110,13 +110,46 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
+        $user = $request->user();
+        
+        // S'assurer que le rôle existe et est valide
+        $role = $user->role ?? 'Utilisateur';
+        if (!in_array($role, ['Administrateur', 'Gestionnaire', 'Utilisateur'])) {
+            $role = 'Utilisateur';
+            $user->update(['role' => 'Utilisateur']);
+        }
+        
+        $currentPermissions = $user->permissions ?? [];
+        $expectedPermissions = $this->getDefaultPermissions($role);
+        
+        // Vérifier si l'utilisateur a "Gestion complète" mais n'est pas Administrateur
+        $hasGestionComplete = false;
+        foreach ($currentPermissions as $perm) {
+            if (strtolower(trim($perm)) === 'gestion complète') {
+                $hasGestionComplete = true;
+                break;
+            }
+        }
+        
+        // Si l'utilisateur a "Gestion complète" mais n'est pas Administrateur, corriger automatiquement
+        if ($hasGestionComplete && $role !== 'Administrateur') {
+            $user->update(['permissions' => $expectedPermissions]);
+            $currentPermissions = $expectedPermissions;
+        }
+        
+        // S'assurer que les permissions correspondent au rôle
+        if ($currentPermissions !== $expectedPermissions && $role !== 'Administrateur') {
+            $user->update(['permissions' => $expectedPermissions]);
+            $currentPermissions = $expectedPermissions;
+        }
+        
         return response()->json([
-            'id' => $request->user()->id,
-            'name' => $request->user()->name,
-            'email' => $request->user()->email,
-            'role' => $request->user()->role,
-            'status' => $request->user()->status,
-            'permissions' => $request->user()->permissions ?? [],
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $role, // Toujours retourner le rôle de la base de données
+            'status' => $user->status,
+            'permissions' => $currentPermissions,
         ]);
     }
 
@@ -128,13 +161,14 @@ class AuthController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
+        $role = $request->input('role', 'Utilisateur');
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'role' => $request->input('role', 'Utilisateur'),
+            'role' => $role,
             'status' => $request->input('status', 'Actif'),
-            'permissions' => ['Gestion complète'],
+            'permissions' => $this->getDefaultPermissions($role),
             'email_verified_at' => now(),
         ]);
 
@@ -152,6 +186,18 @@ class AuthController extends Controller
             ],
             'token' => $token,
         ], 201);
+    }
+
+    private function getDefaultPermissions($role)
+    {
+        switch ($role) {
+            case 'Administrateur':
+                return ['Gestion complète', 'Rapports', 'Gestion stock', 'Réceptions', 'Sorties', 'Inventaire', 'Alertes', 'Administration'];
+            case 'Gestionnaire':
+                return ['Gestion stock', 'Réceptions', 'Sorties', 'Inventaire', 'Rapports'];
+            default: // Utilisateur
+                return ['Gestion stock', 'Réceptions', 'Sorties', 'Inventaire'];
+        }
     }
 }
 

@@ -83,12 +83,15 @@ export default function ActivatePage() {
 
             // Si un token est retourné, le stocker pour connecter automatiquement l'utilisateur
             if (data.token) {
+                // Supprimer l'ancien token s'il existe (pour éviter les conflits)
+                localStorage.removeItem('auth_token');
                 localStorage.setItem('auth_token', data.token);
             }
 
             setSuccess(true);
+            // Recharger la page pour forcer le rechargement des données utilisateur
             setTimeout(() => {
-                router.push('/');
+                window.location.href = '/';
             }, 2000);
         } catch (err: any) {
             setError(err?.message || 'Erreur lors de l\'activation du compte');

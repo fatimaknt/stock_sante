@@ -41,7 +41,10 @@ export default function LoginPage() {
 
             if (data.token) {
                 localStorage.setItem('auth_token', data.token);
-                router.push('/');
+                // Déclencher un événement pour recharger le contexte
+                window.dispatchEvent(new Event('auth-token-changed'));
+                // Recharger la page pour forcer le rechargement du contexte utilisateur
+                window.location.href = '/';
             } else {
                 setError('Erreur lors de la connexion');
             }

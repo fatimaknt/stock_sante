@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-    const { reload, hasPermission, user } = useAuth();
+    const { reload, hasPermission, user, isAdmin } = useAuth();
 
     // Déterminer si la route est publique (doit être stable et avant tout return)
     const isPublic = useMemo(() => {
@@ -61,7 +61,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router.pathname, isPublic]);
 
-    // Map des permissions requises par route
+    // Map des permissions requises par route et routes admin uniquement
     const routePermission = useMemo(() => {
         const map: Record<string, string | null> = {
             '/products': 'Gestion stock',
@@ -77,6 +77,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         const key = Object.keys(map).find(k => (k === '/' ? path === '/' : path.startsWith(k)));
         return key ? map[key] : null;
     }, [router.pathname]);
+
+    // Routes réservées aux admins
+    const adminOnlyRoutes = useMemo(() => {
+        return ['/user', '/settings'];
+    }, []);
+
+    const isAdminRoute = useMemo(() => {
+        return adminOnlyRoutes.some(route => router.pathname.startsWith(route));
+    }, [router.pathname, adminOnlyRoutes]);
 
     // Loader pendant vérification
     if (isAuthenticated === null) {
@@ -95,8 +104,22 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         return <>{children}</>;
     }
 
-    // Contrôle des permissions
-    if (routePermission && !hasPermission(routePermission)) {
+    // Vérifier si c'est une route admin uniquement - PROTECTION STRICTE
+    if (isAdminRoute && isAuthenticated && user) {
+        // Seuls les admins peuvent accéder aux routes admin
+        if (user.role !== 'Administrateur') {
+            if (router.pathname !== '/') router.push('/');
+            return null;
+        }
+    }
+
+    // Si l'utilisateur est admin, autoriser toutes les routes (admin voit tout)
+    if (isAuthenticated && user && user.role === 'Administrateur') {
+        return <>{children}</>;
+    }
+
+    // Pour les utilisateurs et gestionnaires : vérifier UNIQUEMENT leurs permissions spécifiques
+    if (isAuthenticated && user && routePermission && !hasPermission(routePermission)) {
         if (router.pathname !== '/') router.push('/');
         return null;
     }

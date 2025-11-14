@@ -19,10 +19,12 @@ import {
     ClockIcon,
     DocumentTextIcon,
     ChevronLeftIcon,
-    ChevronRightIcon
+    ChevronRightIcon,
+    XCircleIcon
 } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
 
 type Vehicle = {
     id: number;
@@ -34,12 +36,13 @@ type Vehicle = {
     acquirer: string;
     reception_commission?: string;
     observations?: string;
-    status: 'pending' | 'assigned' | 'reformed';
+    status: 'pending' | 'assigned' | 'reformed' | 'rejected';
     reformed_at?: string;
     reform_reason?: string;
     reform_agent?: string;
     reform_destination?: string;
     reform_notes?: string;
+    pending_operation_id?: number | null;
     assignment?: {
         id: number;
         region: string;
@@ -85,6 +88,7 @@ type Maintenance = {
 
 export default function VehiclesPage() {
     const { settings } = useSettings();
+    const { user } = useAuth();
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -171,6 +175,32 @@ export default function VehiclesPage() {
             console.error('Erreur de chargement:', err);
             setError(err?.message || 'Erreur de chargement');
             setVehicles([]);
+        }
+    };
+
+    const approveVehicle = async (pendingOperationId: number) => {
+        try {
+            setError('');
+            await getJSON(API(`/approvals/${pendingOperationId}/approve`), { method: 'POST' });
+            setSuccess('Véhicule approuvé avec succès!');
+            await load();
+        } catch (err: any) {
+            console.error('Erreur lors de l\'approbation:', err);
+            setError(err?.message || 'Erreur lors de l\'approbation du véhicule');
+            setSuccess('');
+        }
+    };
+
+    const rejectVehicle = async (pendingOperationId: number) => {
+        try {
+            setError('');
+            await getJSON(API(`/approvals/${pendingOperationId}/reject`), { method: 'POST' });
+            setSuccess('Véhicule rejeté');
+            await load();
+        } catch (err: any) {
+            console.error('Erreur lors du rejet:', err);
+            setError(err?.message || 'Erreur lors du rejet du véhicule');
+            setSuccess('');
         }
     };
 
@@ -1061,13 +1091,36 @@ export default function VehiclesPage() {
                                                 <td className="px-2 sm:px-3 py-5 text-gray-700 text-sm hidden lg:table-cell">{formatDate(vehicle.acquisition_date)}</td>
                                                 <td className="px-2 sm:px-3 py-5 text-gray-700 text-sm hidden lg:table-cell">{vehicle.acquirer}</td>
                                                 <td className="px-2 sm:px-3 py-5">
-                                                    <button
-                                                        onClick={() => openDetailModal(vehicle)}
-                                                        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all transform hover:scale-105 text-xs"
-                                                    >
-                                                        <EyeIcon className="w-4 h-4" />
-                                                        <span className="hidden sm:inline">Détails</span>
-                                                    </button>
+                                                    <div className="flex items-center gap-1 flex-wrap">
+                                                        <button
+                                                            onClick={() => openDetailModal(vehicle)}
+                                                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all transform hover:scale-105 text-xs"
+                                                        >
+                                                            <EyeIcon className="w-4 h-4" />
+                                                            <span className="hidden sm:inline">Détails</span>
+                                                        </button>
+                                                        {/* Boutons d'approbation/rejet - UNIQUEMENT pour les admins et les véhicules en attente d'approbation */}
+                                                        {user && user.role === 'Administrateur' && vehicle.pending_operation_id && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => approveVehicle(vehicle.pending_operation_id!)}
+                                                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-all transform hover:scale-105 text-xs"
+                                                                    title="Approuver le véhicule"
+                                                                >
+                                                                    <CheckCircleIcon className="w-4 h-4" />
+                                                                    <span className="hidden sm:inline">Approuver</span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => rejectVehicle(vehicle.pending_operation_id!)}
+                                                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-105 text-xs"
+                                                                    title="Rejeter le véhicule"
+                                                                >
+                                                                    <XCircleIcon className="w-4 h-4" />
+                                                                    <span className="hidden sm:inline">Rejeter</span>
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -1295,6 +1348,10 @@ export default function VehiclesPage() {
                                                         <span className="inline-flex items-center justify-center px-2 py-1 rounded-lg text-xs font-semibold shadow-sm bg-gradient-to-r from-gray-600 to-gray-700 text-white">
                                                             Réformé
                                                         </span>
+                                                    ) : vehicle.status === 'rejected' ? (
+                                                        <span className="inline-flex items-center justify-center px-2 py-1 rounded-lg text-xs font-semibold shadow-sm bg-gradient-to-r from-red-600 to-red-700 text-white">
+                                                            Rejetée
+                                                        </span>
                                                     ) : (
                                                         <span className="inline-flex items-center justify-center px-2 py-1 rounded-lg text-xs font-semibold shadow-sm bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
                                                             En attente
@@ -1310,23 +1367,49 @@ export default function VehiclesPage() {
                                                             <EyeIcon className="w-4 h-4" />
                                                             <span className="hidden sm:inline">Détails</span>
                                                         </button>
-                                                        {vehicle.status === 'assigned' && (
-                                                            <button
-                                                                onClick={() => openUnassignModal(vehicle)}
-                                                                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-105 text-xs"
-                                                            >
-                                                                <XMarkIcon className="w-4 h-4" />
-                                                                <span className="hidden sm:inline">Désaffecter</span>
-                                                            </button>
+                                                        {/* Boutons d'approbation/rejet - UNIQUEMENT pour les admins */}
+                                                        {user && user.role === 'Administrateur' && vehicle.status === 'pending' && vehicle.pending_operation_id && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => approveVehicle(vehicle.pending_operation_id!)}
+                                                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-all transform hover:scale-105 text-xs"
+                                                                    title="Approuver le véhicule"
+                                                                >
+                                                                    <CheckCircleIcon className="w-4 h-4" />
+                                                                    <span className="hidden sm:inline">Approuver</span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => rejectVehicle(vehicle.pending_operation_id!)}
+                                                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-105 text-xs"
+                                                                    title="Rejeter le véhicule"
+                                                                >
+                                                                    <XCircleIcon className="w-4 h-4" />
+                                                                    <span className="hidden sm:inline">Rejeter</span>
+                                                                </button>
+                                                            </>
                                                         )}
-                                                        {vehicle.status !== 'reformed' && (
-                                                            <button
-                                                                onClick={() => openReformModal(vehicle)}
-                                                                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-600 transition-all transform hover:scale-105 text-xs"
-                                                            >
-                                                                <TrashIcon className="w-4 h-4" />
-                                                                <span className="hidden sm:inline">Réformer</span>
-                                                            </button>
+                                                        {/* Boutons pour les véhicules approuvés uniquement */}
+                                                        {vehicle.status !== 'pending' && vehicle.status !== 'rejected' && (
+                                                            <>
+                                                                {vehicle.status === 'assigned' && (
+                                                                    <button
+                                                                        onClick={() => openUnassignModal(vehicle)}
+                                                                        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-105 text-xs"
+                                                                    >
+                                                                        <XMarkIcon className="w-4 h-4" />
+                                                                        <span className="hidden sm:inline">Désaffecter</span>
+                                                                    </button>
+                                                                )}
+                                                                {vehicle.status !== 'reformed' && (
+                                                                    <button
+                                                                        onClick={() => openReformModal(vehicle)}
+                                                                        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-600 transition-all transform hover:scale-105 text-xs"
+                                                                    >
+                                                                        <TrashIcon className="w-4 h-4" />
+                                                                        <span className="hidden sm:inline">Réformer</span>
+                                                                    </button>
+                                                                )}
+                                                            </>
                                                         )}
                                                     </div>
                                                 </td>

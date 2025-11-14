@@ -1,8 +1,9 @@
 import React, { useEffect, useState, FormEvent, useRef } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
-import { ArrowRightOnRectangleIcon, PlusIcon, TrashIcon, ArrowTrendingUpIcon, MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, DocumentArrowDownIcon, ChevronLeftIcon, ChevronRightIcon, CheckCircleIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowRightOnRectangleIcon, PlusIcon, TrashIcon, ArrowTrendingUpIcon, MagnifyingGlassIcon, ChevronDownIcon, XMarkIcon, DocumentArrowDownIcon, ChevronLeftIcon, ChevronRightIcon, CheckCircleIcon, ArrowUturnLeftIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 import { jsPDF } from 'jspdf';
 
 type Product = { id: number; name: string; quantity: number };
@@ -17,6 +18,7 @@ type StockOutRow = {
     movement_date: string;
     exit_type?: string;
     status?: string;
+    pending_operation_id?: number | null;
 };
 
 type TopBeneficiary = {
@@ -29,6 +31,7 @@ type TopBeneficiary = {
 type Item = { product_id: number | ''; quantity: number };
 
 export default function StockOutPage() {
+    const { user } = useAuth();
     const [products, setProducts] = useState<Product[]>([]);
     const [rows, setRows] = useState<StockOutRow[]>([]);
     const [topBeneficiaries, setTopBeneficiaries] = useState<TopBeneficiary[]>([]);
@@ -195,6 +198,32 @@ export default function StockOutPage() {
         }
     };
 
+    const approveStockOut = async (pendingOperationId: number) => {
+        try {
+            setError('');
+            await getJSON(API(`/approvals/${pendingOperationId}/approve`), { method: 'POST' });
+            setSuccess('Sortie approuvée avec succès!');
+            await load();
+        } catch (err: any) {
+            console.error('Erreur lors de l\'approbation:', err);
+            setError(err?.message || 'Erreur lors de l\'approbation de la sortie');
+            setSuccess('');
+        }
+    };
+
+    const rejectStockOut = async (pendingOperationId: number) => {
+        try {
+            setError('');
+            await getJSON(API(`/approvals/${pendingOperationId}/reject`), { method: 'POST' });
+            setSuccess('Sortie rejetée');
+            await load();
+        } catch (err: any) {
+            console.error('Erreur lors du rejet:', err);
+            setError(err?.message || 'Erreur lors du rejet de la sortie');
+            setSuccess('');
+        }
+    };
+
     const openValidateModal = (stockOut: StockOutRow) => {
         setStockOutToValidate(stockOut);
         setIsValidateModalOpen(true);
@@ -276,6 +305,21 @@ export default function StockOutPage() {
                 return 'bg-gradient-to-r from-blue-600 to-blue-700 text-white';
             default:
                 return 'bg-gradient-to-r from-gray-600 to-gray-700 text-white';
+        }
+    };
+
+    const getStatusInfo = (status?: string) => {
+        switch (status) {
+            case 'pending':
+                return { label: 'En attente', color: 'bg-gradient-to-r from-yellow-500 to-yellow-600' };
+            case 'rejected':
+                return { label: 'Rejetée', color: 'bg-gradient-to-r from-red-600 to-red-700' };
+            case 'Retournée':
+                return { label: 'Retournée', color: 'bg-gradient-to-r from-green-600 to-green-700' };
+            case 'Complétée':
+                return { label: 'Complétée', color: 'bg-gradient-to-r from-emerald-600 to-emerald-700' };
+            default:
+                return { label: status || 'Aucun', color: 'bg-gradient-to-r from-gray-600 to-gray-700' };
         }
     };
 
@@ -964,20 +1008,60 @@ export default function StockOutPage() {
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-5">
-                                                    {r.status && (
-                                                        <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${getStatusColor(r.status)}`}>
-                                                            {r.status}
-                                                        </span>
-                                                    )}
-                                                    {!r.status && r.exit_type === 'Provisoire' && (
-                                                        <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
-                                                            En attente
-                                                        </span>
-                                                    )}
+                                                    {(() => {
+                                                        // Si c'est une sortie en attente/rejetée (pending_operation)
+                                                        if (r.status === 'pending' || r.status === 'rejected') {
+                                                            const statusInfo = getStatusInfo(r.status);
+                                                            return (
+                                                                <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm text-white ${statusInfo.color}`}>
+                                                                    {statusInfo.label}
+                                                                </span>
+                                                            );
+                                                        }
+                                                        // Si c'est une sortie provisoire sans statut
+                                                        if (!r.status && r.exit_type === 'Provisoire') {
+                                                            return (
+                                                                <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
+                                                                    En attente
+                                                                </span>
+                                                            );
+                                                        }
+                                                        // Sinon, afficher le statut normal
+                                                        if (r.status) {
+                                                            const statusInfo = getStatusInfo(r.status);
+                                                            return (
+                                                                <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm text-white ${statusInfo.color}`}>
+                                                                    {statusInfo.label}
+                                                                </span>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
                                                 </td>
                                                 <td className="px-6 py-5 text-gray-600">{r.notes || '-'}</td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex items-center gap-2">
+                                                        {/* Boutons d'approbation/rejet - UNIQUEMENT pour les admins */}
+                                                        {user && user.role === 'Administrateur' && r.status === 'pending' && r.pending_operation_id && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => approveStockOut(r.pending_operation_id!)}
+                                                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-all transform hover:scale-110"
+                                                                    aria-label="approuver"
+                                                                    title="Approuver la sortie"
+                                                                >
+                                                                    <CheckCircleIcon className="w-5 h-5" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => rejectStockOut(r.pending_operation_id!)}
+                                                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
+                                                                    aria-label="rejeter"
+                                                                    title="Rejeter la sortie"
+                                                                >
+                                                                    <XCircleIcon className="w-5 h-5" />
+                                                                </button>
+                                                            </>
+                                                        )}
                                                         {/* Bouton Valider - visible uniquement pour les sorties provisoires non retournées */}
                                                         {isProvisoireWithoutStatus && (
                                                             <button
@@ -1000,20 +1084,25 @@ export default function StockOutPage() {
                                                                 <ArrowUturnLeftIcon className="w-5 h-5" />
                                                             </button>
                                                         )}
-                                                        <button
-                                                            onClick={() => exportSingleStockOutPDF(r)}
-                                                            className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-600 transition-all transform hover:scale-110"
-                                                            aria-label="exporter cette sortie en PDF"
-                                                            title="Exporter cette sortie en PDF"
-                                                        >
-                                                            <DocumentArrowDownIcon className="w-5 h-5" />
-                                                        </button>
-                                                        <button
-                                                            className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
-                                                            aria-label="supprimer"
-                                                        >
-                                                            <TrashIcon className="w-5 h-5" />
-                                                        </button>
+                                                        {/* Boutons pour les sorties approuvées uniquement */}
+                                                        {r.status !== 'pending' && r.status !== 'rejected' && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => exportSingleStockOutPDF(r)}
+                                                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-600 transition-all transform hover:scale-110"
+                                                                    aria-label="exporter cette sortie en PDF"
+                                                                    title="Exporter cette sortie en PDF"
+                                                                >
+                                                                    <DocumentArrowDownIcon className="w-5 h-5" />
+                                                                </button>
+                                                                <button
+                                                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
+                                                                    aria-label="supprimer"
+                                                                >
+                                                                    <TrashIcon className="w-5 h-5" />
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>

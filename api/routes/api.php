@@ -1,6 +1,6 @@
 <?php
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\{ProductController,ReceiptController,StockOutController,InventoryController,StatsController,CategoryController,UserController,AuthController,UserActivationController,VehicleController,MaintenanceController};
+use App\Http\Controllers\Api\{ProductController,ReceiptController,StockOutController,InventoryController,StatsController,CategoryController,UserController,AuthController,UserActivationController,VehicleController,MaintenanceController,ApprovalController};
 
 // Routes publiques (pas d'authentification)
 Route::post('auth/login', [AuthController::class,'login']);
@@ -18,8 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Réceptions
     Route::get('receipts', [ReceiptController::class,'index']);
     Route::post('receipts', [ReceiptController::class,'store']);
-    Route::put('receipts/{receipt}', [ReceiptController::class,'update']);
-    Route::delete('receipts/{receipt}', [ReceiptController::class,'destroy']);
+    Route::put('receipts/{id}', [ReceiptController::class,'update']);
+    Route::delete('receipts/{id}', [ReceiptController::class,'destroy']);
 
     // Sorties
     Route::get('stockouts', [StockOutController::class,'index']);
@@ -54,6 +54,12 @@ Route::post('vehicles/{id}/reform', [VehicleController::class,'reform']);
     // Maintenances
     Route::get('maintenances', [MaintenanceController::class,'index']);
     Route::post('maintenances', [MaintenanceController::class,'store']);
+
+    // Approbations (uniquement pour les admins)
+    Route::get('approvals', [ApprovalController::class,'index']);
+    Route::get('approvals/{id}', [ApprovalController::class,'show']);
+    Route::post('approvals/{id}/approve', [ApprovalController::class,'approve']);
+    Route::post('approvals/{id}/reject', [ApprovalController::class,'reject']);
 
     // Authentification protégée
     Route::post('auth/logout', [AuthController::class,'logout']);

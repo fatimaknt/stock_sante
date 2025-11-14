@@ -23,6 +23,7 @@ class InventoryController extends Controller
             'items.*.counted_qty' => 'required|integer|min:0',
         ]);
 
+        // Les inventaires sont créés directement, sans système d'approbation
         return DB::transaction(function() use($v) {
             $inv = Inventory::create(collect($v)->except('items')->toArray());
             foreach($v['items'] as $it) {

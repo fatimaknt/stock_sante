@@ -1,33 +1,32 @@
 <?php
+
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Receipt extends Model
+class PendingOperation extends Model
 {
     use HasFactory;
-    
+
     protected $fillable = [
-        'ref',
-        'supplier_id',
-        'supplier',
-        'agent',
-        'acquirer',
-        'persons_present',
-        'received_at',
-        'notes',
+        'type',
+        'data',
+        'user_id',
         'status',
         'approved_by',
+        'rejection_reason',
         'approved_at',
     ];
 
     protected $casts = [
+        'data' => 'array',
         'approved_at' => 'datetime',
     ];
 
-    public function items()
+    public function user()
     {
-        return $this->hasMany(ReceiptItem::class);
+        return $this->belongsTo(User::class);
     }
 
     public function approver()
@@ -35,3 +34,4 @@ class Receipt extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 }
+

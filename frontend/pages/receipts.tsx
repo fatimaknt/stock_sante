@@ -1,14 +1,15 @@
 import React, { useEffect, useState, FormEvent, useMemo } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
-import { PlusIcon, TrashIcon, InboxIcon, MagnifyingGlassIcon, XMarkIcon, CubeIcon, EyeIcon, DocumentArrowDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, InboxIcon, MagnifyingGlassIcon, XMarkIcon, CubeIcon, EyeIcon, DocumentArrowDownIcon, ChevronLeftIcon, ChevronRightIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
 import { jsPDF } from 'jspdf';
 
 type Product = { id: number; name: string };
 type Category = { id: number; name: string };
-type ReceiptRow = { id: number; ref?: string | null; supplier: string | null; agent: string; acquirer?: string | null; persons_present?: string | null; received_at: string; notes?: string; items_count: number; items?: any[] };
+type ReceiptRow = { id: number; ref?: string | null; supplier: string | null; agent: string; acquirer?: string | null; persons_present?: string | null; received_at: string; notes?: string; items_count: number; items?: any[]; status?: string; approved_by?: string | null; approved_at?: string | null; pending_operation_id?: number | null };
 
 type Item = { product_ref?: string; product_name: string; product_category_id?: string; quantity: number; unit_price: number };
 
@@ -20,8 +21,22 @@ const CATEGORIES_FALLBACK: Category[] = [
     { id: 5, name: "Produits d'entretien" },
 ];
 
+const getStatusInfo = (status?: string) => {
+    switch (status) {
+        case 'pending':
+            return { label: 'En attente', color: 'bg-gradient-to-r from-yellow-500 to-yellow-600' };
+        case 'approved':
+            return { label: 'Approuvée', color: 'bg-gradient-to-r from-emerald-600 to-emerald-700' };
+        case 'rejected':
+            return { label: 'Rejetée', color: 'bg-gradient-to-r from-red-600 to-red-700' };
+        default:
+            return { label: 'Approuvée', color: 'bg-gradient-to-r from-emerald-600 to-emerald-700' };
+    }
+};
+
 export default function ReceiptsPage() {
     const { settings } = useSettings();
+    const { isAdmin, user } = useAuth();
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [rows, setRows] = useState<ReceiptRow[]>([]);
@@ -159,6 +174,32 @@ export default function ReceiptsPage() {
         } catch (err: any) {
             console.error('Erreur lors de l\'enregistrement:', err);
             setError(err?.message || 'Erreur lors de l\'enregistrement de la réception');
+            setSuccess('');
+        }
+    };
+
+    const approveReceipt = async (pendingOperationId: number) => {
+        try {
+            setError('');
+            await getJSON(API(`/approvals/${pendingOperationId}/approve`), { method: 'POST' });
+            setSuccess('Réception approuvée avec succès!');
+            await load();
+        } catch (err: any) {
+            console.error('Erreur lors de l\'approbation:', err);
+            setError(err?.message || 'Erreur lors de l\'approbation de la réception');
+            setSuccess('');
+        }
+    };
+
+    const rejectReceipt = async (pendingOperationId: number) => {
+        try {
+            setError('');
+            await getJSON(API(`/approvals/${pendingOperationId}/reject`), { method: 'POST' });
+            setSuccess('Réception rejetée');
+            await load();
+        } catch (err: any) {
+            console.error('Erreur lors du rejet:', err);
+            setError(err?.message || 'Erreur lors du rejet de la réception');
             setSuccess('');
         }
     };
@@ -395,8 +436,24 @@ export default function ReceiptsPage() {
                         currentY = margin;
                     }
 
-                    const product = products.find(p => p.id === item.product_id);
-                    const productName = product ? product.name : `Produit #${item.product_id}`;
+                    // Pour les réceptions en attente, utiliser product_name si disponible
+                    let productName = item.product_name || '';
+                    
+                    // Si product_id existe, essayer de trouver le produit par ID
+                    if (item.product_id) {
+                        const product = products.find(p => p.id === item.product_id);
+                        if (product) {
+                            productName = product.name;
+                        } else if (!productName) {
+                            productName = `Produit #${item.product_id}`;
+                        }
+                    }
+                    
+                    // Si toujours pas de nom, utiliser un fallback
+                    if (!productName || productName.trim() === '') {
+                        productName = item.product_ref ? `Produit ${item.product_ref}` : 'Produit sans nom';
+                    }
+                    
                     const quantity = item.quantity || 0;
                     const unitPrice = item.unit_price || 0;
                     const total = quantity * unitPrice;
@@ -599,8 +656,24 @@ export default function ReceiptsPage() {
                             currentY = margin;
                         }
 
-                        const product = products.find(p => p.id === item.product_id);
-                        const productName = product ? product.name : `Produit #${item.product_id}`;
+                        // Pour les réceptions en attente, utiliser product_name si disponible
+                        let productName = item.product_name || '';
+                        
+                        // Si product_id existe, essayer de trouver le produit par ID
+                        if (item.product_id) {
+                            const product = products.find(p => p.id === item.product_id);
+                            if (product) {
+                                productName = product.name;
+                            } else if (!productName) {
+                                productName = `Produit #${item.product_id}`;
+                            }
+                        }
+                        
+                        // Si toujours pas de nom, utiliser un fallback
+                        if (!productName || productName.trim() === '') {
+                            productName = item.product_ref ? `Produit ${item.product_ref}` : 'Produit sans nom';
+                        }
+                        
                         const quantity = item.quantity || 0;
                         const unitPrice = item.unit_price || 0;
                         const total = quantity * unitPrice;
@@ -1040,9 +1113,14 @@ export default function ReceiptsPage() {
                                             <td className="px-6 py-5 text-gray-700">{r.acquirer || 'ND'}</td>
                                             <td className="px-6 py-5 text-gray-700">{r.persons_present || 'ND'}</td>
                                             <td className="px-6 py-5">
-                                                <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm bg-gradient-to-r from-emerald-600 to-emerald-700 text-white">
-                                                    Complétée
-                                                </span>
+                                                {(() => {
+                                                    const statusInfo = getStatusInfo(r.status);
+                                                    return (
+                                                        <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm text-white ${statusInfo.color}`}>
+                                                            {statusInfo.label}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-2">
@@ -1054,24 +1132,50 @@ export default function ReceiptsPage() {
                                                     >
                                                         <EyeIcon className="w-5 h-5" />
                                                     </button>
-                                                    <button
-                                                        onClick={() => openEditModal(r)}
-                                                        className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all transform hover:scale-110"
-                                                        aria-label="éditer"
-                                                        title="Modifier"
-                                                    >
-                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                                        </svg>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => openDeleteModal(r)}
-                                                        className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
-                                                        aria-label="supprimer"
-                                                        title="Supprimer"
-                                                    >
-                                                        <TrashIcon className="w-5 h-5" />
-                                                    </button>
+                                                    {/* Boutons d'approbation/rejet - UNIQUEMENT pour les admins */}
+                                                    {user && user.role === 'Administrateur' && r.status === 'pending' && r.pending_operation_id && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => approveReceipt(r.pending_operation_id!)}
+                                                                className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-all transform hover:scale-110"
+                                                                aria-label="approuver"
+                                                                title="Approuver la réception"
+                                                            >
+                                                                <CheckCircleIcon className="w-5 h-5" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => rejectReceipt(r.pending_operation_id!)}
+                                                                className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
+                                                                aria-label="rejeter"
+                                                                title="Rejeter la réception"
+                                                            >
+                                                                <XCircleIcon className="w-5 h-5" />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {/* Boutons modifier et supprimer - pour toutes les réceptions (sauf rejetées) */}
+                                                    {r.status !== 'rejected' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => openEditModal(r)}
+                                                                className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all transform hover:scale-110"
+                                                                aria-label="éditer"
+                                                                title="Modifier"
+                                                            >
+                                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                                                </svg>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => openDeleteModal(r)}
+                                                                className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
+                                                                aria-label="supprimer"
+                                                                title="Supprimer"
+                                                            >
+                                                                <TrashIcon className="w-5 h-5" />
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -1352,8 +1456,24 @@ export default function ReceiptsPage() {
                                                 </thead>
                                                 <tbody>
                                                     {detailReceipt.items.map((item: any, idx: number) => {
-                                                        const product = products.find(p => p.id === item.product_id);
-                                                        const productName = product ? product.name : `Produit #${item.product_id}`;
+                                                        // Pour les réceptions en attente, utiliser product_name si disponible
+                                                        let productName = item.product_name || '';
+                                                        
+                                                        // Si product_id existe, essayer de trouver le produit par ID
+                                                        if (item.product_id) {
+                                                            const product = products.find(p => p.id === item.product_id);
+                                                            if (product) {
+                                                                productName = product.name;
+                                                            } else if (!productName) {
+                                                                productName = `Produit #${item.product_id}`;
+                                                            }
+                                                        }
+                                                        
+                                                        // Si toujours pas de nom, utiliser un fallback
+                                                        if (!productName || productName.trim() === '') {
+                                                            productName = item.product_ref ? `Produit ${item.product_ref}` : 'Produit sans nom';
+                                                        }
+                                                        
                                                         const quantity = item.quantity || 0;
                                                         const unitPrice = item.unit_price || 0;
                                                         const total = quantity * unitPrice;

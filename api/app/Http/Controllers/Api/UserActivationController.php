@@ -63,13 +63,14 @@ class UserActivationController extends Controller
         }
 
         // Créer l'utilisateur
+        // TOUJOURS utiliser les permissions par défaut basées sur le rôle pour garantir la sécurité
         $user = User::create([
             'name' => $invitation->name,
             'email' => $invitation->email,
             'password' => Hash::make($request->password),
             'role' => $invitation->role,
             'status' => 'Actif',
-            'permissions' => $invitation->permissions ?? $this->getDefaultPermissions($invitation->role),
+            'permissions' => $this->getDefaultPermissions($invitation->role),
             'email_verified_at' => now(),
             'last_login' => now(),
         ]);
@@ -94,20 +95,14 @@ class UserActivationController extends Controller
 
     private function getDefaultPermissions($role)
     {
-        $permissions = ['Gestion complète'];
-
         switch ($role) {
             case 'Administrateur':
-                $permissions = ['Gestion complète', 'Rapports', 'Gestion stock'];
-                break;
+                return ['Gestion complète', 'Rapports', 'Gestion stock', 'Réceptions', 'Sorties', 'Inventaire', 'Alertes', 'Administration'];
             case 'Gestionnaire':
-                $permissions = ['Gestion complète', 'Gestion stock'];
-                break;
-            default:
-                $permissions = ['Gestion complète'];
+                return ['Gestion stock', 'Réceptions', 'Sorties', 'Inventaire', 'Rapports'];
+            default: // Utilisateur
+                return ['Gestion stock', 'Réceptions', 'Sorties', 'Inventaire'];
         }
-
-        return $permissions;
     }
 }
 
