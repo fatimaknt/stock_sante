@@ -1,6 +1,6 @@
 <?php
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\{ProductController,ReceiptController,StockOutController,InventoryController,StatsController,CategoryController,UserController,AuthController,UserActivationController,VehicleController,MaintenanceController,ApprovalController};
+use App\Http\Controllers\Api\{ProductController,ReceiptController,StockOutController,InventoryController,StatsController,CategoryController,UserController,AuthController,UserActivationController,VehicleController,MaintenanceController,ApprovalController,NeedController};
 
 // Routes publiques (pas d'authentification)
 Route::post('auth/login', [AuthController::class,'login']);
@@ -60,6 +60,12 @@ Route::post('vehicles/{id}/reform', [VehicleController::class,'reform']);
     Route::get('approvals/{id}', [ApprovalController::class,'show']);
     Route::post('approvals/{id}/approve', [ApprovalController::class,'approve']);
     Route::post('approvals/{id}/reject', [ApprovalController::class,'reject']);
+
+    // Besoins
+    Route::get('needs', [NeedController::class,'index']);
+    Route::post('needs', [NeedController::class,'store']);
+    Route::post('needs/{id}/approve', [NeedController::class,'approve']);
+    Route::post('needs/{id}/reject', [NeedController::class,'reject']);
 
     // Authentification protégée
     Route::post('auth/logout', [AuthController::class,'logout']);

@@ -13,6 +13,7 @@ import {
     BellIcon,
     ChartBarIcon,
     TruckIcon,
+    ClipboardDocumentCheckIcon,
 } from '@heroicons/react/24/outline';
 
 export default function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolean; onToggle: () => void }) {
@@ -26,6 +27,7 @@ export default function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolea
         { href: '/products', label: 'Produits', icon: 'cube', perm: 'Gestion stock', adminOnly: false },
         { href: '/receipts', label: 'Réception', icon: 'inbox', perm: 'Réceptions', adminOnly: false },
         { href: '/stockout', label: 'Sortie', icon: 'arrow-right', perm: 'Sorties', adminOnly: false },
+        { href: '/needs', label: 'Besoins', icon: 'needs', perm: null, adminOnly: false },
         { href: '/inventory', label: 'Inventaire', icon: 'clipboard', perm: 'Inventaire', adminOnly: false },
         { href: '/vehicles', label: 'Véhicules', icon: 'truck', perm: null, adminOnly: false },
         { href: '/alerts', label: 'Alertes', icon: 'bell', perm: 'Alertes', adminOnly: false },
@@ -101,6 +103,8 @@ export default function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolea
                 return <ChartBarIcon className={`${iconClass} ${colorClass}`} />;
             case 'truck':
                 return <TruckIcon className={`${iconClass} ${colorClass}`} />;
+            case 'needs':
+                return <ClipboardDocumentCheckIcon className={`${iconClass} ${colorClass}`} />;
             case 'ai-robot':
                 return (
                     <svg className={`${iconClass} ${colorClass}`} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

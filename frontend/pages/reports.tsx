@@ -16,7 +16,6 @@ import {
     ClipboardDocumentCheckIcon
 } from '@heroicons/react/24/outline';
 import { getJSON, API } from '../utils/api';
-import { jsPDF } from 'jspdf';
 
 type Product = {
     id: number;
@@ -395,7 +394,7 @@ export default function ReportsPage() {
         </body></html>`;
     };
 
-    const exportPDF = () => {
+    const exportPDF = async () => {
         try {
             console.log('Début export PDF téléchargeable...');
 
@@ -426,7 +425,8 @@ export default function ReportsPage() {
             };
 
             // Créer un nouveau document PDF
-            const doc = new jsPDF('p', 'mm', 'a4');
+            const { jsPDF: jsPDFModule } = await import('jspdf');
+            const doc = new jsPDFModule('p', 'mm', 'a4');
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             const margin = 15;
@@ -747,7 +747,8 @@ export default function ReportsPage() {
     // Fonction pour exporter le rapport annuel en PDF
     const exportAnnualReportPDF = async () => {
         try {
-            const doc = new jsPDF('p', 'mm', 'a4');
+            const { jsPDF: jsPDFModule } = await import('jspdf');
+            const doc = new jsPDFModule('p', 'mm', 'a4');
             const pageWidth = doc.internal.pageSize.getWidth();
             const margin = 20;
             let yPos = margin;

@@ -5,7 +5,6 @@ import { PlusIcon, TrashIcon, InboxIcon, MagnifyingGlassIcon, XMarkIcon, CubeIco
 import { getJSON, API } from '../utils/api';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
-import { jsPDF } from 'jspdf';
 
 type Product = { id: number; name: string };
 type Category = { id: number; name: string };
@@ -368,7 +367,8 @@ export default function ReceiptsPage() {
                 }
             }
 
-            const doc = new jsPDF('p', 'mm', 'a4');
+            const { jsPDF: jsPDFModule } = await import('jspdf');
+            const doc = new jsPDFModule('p', 'mm', 'a4');
             const pageWidth = doc.internal.pageSize.getWidth();
             const margin = 20;
             let yPos = margin;
@@ -438,7 +438,7 @@ export default function ReceiptsPage() {
 
                     // Pour les réceptions en attente, utiliser product_name si disponible
                     let productName = item.product_name || '';
-                    
+
                     // Si product_id existe, essayer de trouver le produit par ID
                     if (item.product_id) {
                         const product = products.find(p => p.id === item.product_id);
@@ -448,12 +448,12 @@ export default function ReceiptsPage() {
                             productName = `Produit #${item.product_id}`;
                         }
                     }
-                    
+
                     // Si toujours pas de nom, utiliser un fallback
                     if (!productName || productName.trim() === '') {
                         productName = item.product_ref ? `Produit ${item.product_ref}` : 'Produit sans nom';
                     }
-                    
+
                     const quantity = item.quantity || 0;
                     const unitPrice = item.unit_price || 0;
                     const total = quantity * unitPrice;
@@ -549,7 +549,8 @@ export default function ReceiptsPage() {
                 return fullReceipt || filteredRow;
             });
 
-            const doc = new jsPDF('p', 'mm', 'a4');
+            const { jsPDF: jsPDFModule } = await import('jspdf');
+            const doc = new jsPDFModule('p', 'mm', 'a4');
             const pageWidth = doc.internal.pageSize.getWidth();
             const margin = 20;
             let yPos = margin;
@@ -658,7 +659,7 @@ export default function ReceiptsPage() {
 
                         // Pour les réceptions en attente, utiliser product_name si disponible
                         let productName = item.product_name || '';
-                        
+
                         // Si product_id existe, essayer de trouver le produit par ID
                         if (item.product_id) {
                             const product = products.find(p => p.id === item.product_id);
@@ -668,12 +669,12 @@ export default function ReceiptsPage() {
                                 productName = `Produit #${item.product_id}`;
                             }
                         }
-                        
+
                         // Si toujours pas de nom, utiliser un fallback
                         if (!productName || productName.trim() === '') {
                             productName = item.product_ref ? `Produit ${item.product_ref}` : 'Produit sans nom';
                         }
-                        
+
                         const quantity = item.quantity || 0;
                         const unitPrice = item.unit_price || 0;
                         const total = quantity * unitPrice;
@@ -1105,81 +1106,81 @@ export default function ReceiptsPage() {
                                     filteredRows
                                         .slice((receiptsCurrentPage - 1) * receiptsItemsPerPage, receiptsCurrentPage * receiptsItemsPerPage)
                                         .map(r => (
-                                        <tr key={r.id} className="border-t hover:bg-emerald-50 transition-colors">
-                                            <td className="px-6 py-5 font-semibold text-gray-900">{r.supplier || 'ND'}</td>
-                                            <td className="px-6 py-5 text-left tabular-nums font-medium text-gray-700">{r.items_count}</td>
-                                            <td className="px-6 py-5 text-gray-700 font-medium">{formatDate(r.received_at)}</td>
-                                            <td className="px-6 py-5 text-gray-700">{r.agent || 'ND'}</td>
-                                            <td className="px-6 py-5 text-gray-700">{r.acquirer || 'ND'}</td>
-                                            <td className="px-6 py-5 text-gray-700">{r.persons_present || 'ND'}</td>
-                                            <td className="px-6 py-5">
-                                                {(() => {
-                                                    const statusInfo = getStatusInfo(r.status);
-                                                    return (
-                                                        <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm text-white ${statusInfo.color}`}>
-                                                            {statusInfo.label}
-                                                        </span>
-                                                    );
-                                                })()}
-                                            </td>
-                                            <td className="px-6 py-5">
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => openDetailModal(r)}
-                                                        className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all transform hover:scale-110"
-                                                        aria-label="détails"
-                                                        title="Voir les détails"
-                                                    >
-                                                        <EyeIcon className="w-5 h-5" />
-                                                    </button>
-                                                    {/* Boutons d'approbation/rejet - UNIQUEMENT pour les admins */}
-                                                    {user && user.role === 'Administrateur' && r.status === 'pending' && r.pending_operation_id && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => approveReceipt(r.pending_operation_id!)}
-                                                                className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-all transform hover:scale-110"
-                                                                aria-label="approuver"
-                                                                title="Approuver la réception"
-                                                            >
-                                                                <CheckCircleIcon className="w-5 h-5" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => rejectReceipt(r.pending_operation_id!)}
-                                                                className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
-                                                                aria-label="rejeter"
-                                                                title="Rejeter la réception"
-                                                            >
-                                                                <XCircleIcon className="w-5 h-5" />
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                    {/* Boutons modifier et supprimer - pour toutes les réceptions (sauf rejetées) */}
-                                                    {r.status !== 'rejected' && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => openEditModal(r)}
-                                                                className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all transform hover:scale-110"
-                                                                aria-label="éditer"
-                                                                title="Modifier"
-                                                            >
-                                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                                                </svg>
-                                                            </button>
-                                                            <button
-                                                                onClick={() => openDeleteModal(r)}
-                                                                className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
-                                                                aria-label="supprimer"
-                                                                title="Supprimer"
-                                                            >
-                                                                <TrashIcon className="w-5 h-5" />
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                            <tr key={r.id} className="border-t hover:bg-emerald-50 transition-colors">
+                                                <td className="px-6 py-5 font-semibold text-gray-900">{r.supplier || 'ND'}</td>
+                                                <td className="px-6 py-5 text-left tabular-nums font-medium text-gray-700">{r.items_count}</td>
+                                                <td className="px-6 py-5 text-gray-700 font-medium">{formatDate(r.received_at)}</td>
+                                                <td className="px-6 py-5 text-gray-700">{r.agent || 'ND'}</td>
+                                                <td className="px-6 py-5 text-gray-700">{r.acquirer || 'ND'}</td>
+                                                <td className="px-6 py-5 text-gray-700">{r.persons_present || 'ND'}</td>
+                                                <td className="px-6 py-5">
+                                                    {(() => {
+                                                        const statusInfo = getStatusInfo(r.status);
+                                                        return (
+                                                            <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm text-white ${statusInfo.color}`}>
+                                                                {statusInfo.label}
+                                                            </span>
+                                                        );
+                                                    })()}
+                                                </td>
+                                                <td className="px-6 py-5">
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => openDetailModal(r)}
+                                                            className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all transform hover:scale-110"
+                                                            aria-label="détails"
+                                                            title="Voir les détails"
+                                                        >
+                                                            <EyeIcon className="w-5 h-5" />
+                                                        </button>
+                                                        {/* Boutons d'approbation/rejet - UNIQUEMENT pour les admins */}
+                                                        {user && user.role === 'Administrateur' && r.status === 'pending' && r.pending_operation_id && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => approveReceipt(r.pending_operation_id!)}
+                                                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-all transform hover:scale-110"
+                                                                    aria-label="approuver"
+                                                                    title="Approuver la réception"
+                                                                >
+                                                                    <CheckCircleIcon className="w-5 h-5" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => rejectReceipt(r.pending_operation_id!)}
+                                                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
+                                                                    aria-label="rejeter"
+                                                                    title="Rejeter la réception"
+                                                                >
+                                                                    <XCircleIcon className="w-5 h-5" />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                        {/* Boutons modifier et supprimer - pour toutes les réceptions (sauf rejetées) */}
+                                                        {r.status !== 'rejected' && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => openEditModal(r)}
+                                                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all transform hover:scale-110"
+                                                                    aria-label="éditer"
+                                                                    title="Modifier"
+                                                                >
+                                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                                                    </svg>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => openDeleteModal(r)}
+                                                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
+                                                                    aria-label="supprimer"
+                                                                    title="Supprimer"
+                                                                >
+                                                                    <TrashIcon className="w-5 h-5" />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
                                 )}
                             </tbody>
                         </table>
@@ -1192,11 +1193,10 @@ export default function ReceiptsPage() {
                                 <button
                                     onClick={() => setReceiptsCurrentPage(prev => Math.max(1, prev - 1))}
                                     disabled={receiptsCurrentPage === 1}
-                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                                        receiptsCurrentPage === 1
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${receiptsCurrentPage === 1
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-                                    }`}
+                                        }`}
                                 >
                                     <ChevronLeftIcon className="w-5 h-5" />
                                     <span>Précédent</span>
@@ -1214,7 +1214,7 @@ export default function ReceiptsPage() {
                                             const totalPages = Math.ceil(filteredRows.length / receiptsItemsPerPage);
                                             const showEllipsis = index > 0 && array[index - 1] !== page - 1;
                                             const showEllipsisAfter = index < array.length - 1 && array[index + 1] !== page + 1 && page !== totalPages;
-                                            
+
                                             return (
                                                 <React.Fragment key={page}>
                                                     {showEllipsis && (
@@ -1222,11 +1222,10 @@ export default function ReceiptsPage() {
                                                     )}
                                                     <button
                                                         onClick={() => setReceiptsCurrentPage(page)}
-                                                        className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${
-                                                            receiptsCurrentPage === page
+                                                        className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${receiptsCurrentPage === page
                                                                 ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg'
                                                                 : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {page}
                                                     </button>
@@ -1240,11 +1239,10 @@ export default function ReceiptsPage() {
                                 <button
                                     onClick={() => setReceiptsCurrentPage(prev => Math.min(Math.ceil(filteredRows.length / receiptsItemsPerPage), prev + 1))}
                                     disabled={receiptsCurrentPage >= Math.ceil(filteredRows.length / receiptsItemsPerPage)}
-                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                                        receiptsCurrentPage >= Math.ceil(filteredRows.length / receiptsItemsPerPage)
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${receiptsCurrentPage >= Math.ceil(filteredRows.length / receiptsItemsPerPage)
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-                                    }`}
+                                        }`}
                                 >
                                     <span>Suivant</span>
                                     <ChevronRightIcon className="w-5 h-5" />
@@ -1458,7 +1456,7 @@ export default function ReceiptsPage() {
                                                     {detailReceipt.items.map((item: any, idx: number) => {
                                                         // Pour les réceptions en attente, utiliser product_name si disponible
                                                         let productName = item.product_name || '';
-                                                        
+
                                                         // Si product_id existe, essayer de trouver le produit par ID
                                                         if (item.product_id) {
                                                             const product = products.find(p => p.id === item.product_id);
@@ -1468,12 +1466,12 @@ export default function ReceiptsPage() {
                                                                 productName = `Produit #${item.product_id}`;
                                                             }
                                                         }
-                                                        
+
                                                         // Si toujours pas de nom, utiliser un fallback
                                                         if (!productName || productName.trim() === '') {
                                                             productName = item.product_ref ? `Produit ${item.product_ref}` : 'Produit sans nom';
                                                         }
-                                                        
+
                                                         const quantity = item.quantity || 0;
                                                         const unitPrice = item.unit_price || 0;
                                                         const total = quantity * unitPrice;
