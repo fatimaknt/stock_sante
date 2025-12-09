@@ -21,5 +21,8 @@ RUN composer install --no-dev --optimize-autoloader
 # Exposer le port
 EXPOSE 8000
 
+# Script de démarrage avec migrations
+RUN echo '#!/bin/bash\nphp artisan migrate --force --no-interaction || true\nexec php -S 0.0.0.0:8000 -t public' > /app/start.sh && chmod +x /app/start.sh
+
 # Lancer l'app
-CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]
+CMD ["/app/start.sh"]
