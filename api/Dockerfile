@@ -2,9 +2,11 @@ FROM php:8.2-cli
 
 WORKDIR /app
 
-# Installer les extensions PHP requises
+# Installer les extensions PHP requises et les dépendances
 RUN apt-get update && apt-get install -y \
     libpq-dev \
+    git \
+    unzip \
     && docker-php-ext-install pdo pdo_mysql
 
 # Copier composer
