@@ -1,0 +1,65 @@
+name: stock-sante
+services:
+  # Frontend Next.js
+  - name: frontend
+    github:
+      repo: fatimaknt/stock_sante
+      branch: main
+      deploy_on_push: true
+    source_dir: frontend
+    build_command: npm install && npm run build
+    run_command: npm start
+    envs:
+      - key: NEXT_PUBLIC_API_URL
+        value: ${backend.PUBLIC_URL}/api
+      - key: NODE_ENV
+        value: production
+    http_port: 3000
+    health_check:
+      http_path: /
+
+  # Backend Laravel
+  - name: backend
+    github:
+      repo: fatimaknt/stock_sante
+      branch: main
+      deploy_on_push: true
+    source_dir: api
+    build_command: composer install --no-dev
+    run_command: php artisan serve --host=0.0.0.0 --port=8000
+    envs:
+      - key: PORT
+        value: "8000"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        value: ${backend.PUBLIC_URL}
+      - key: DB_HOST
+        value: ${db.HOSTNAME}
+      - key: DB_PORT
+        value: ${db.PORT}
+      - key: DB_DATABASE
+        value: ${db.DATABASE}
+      - key: DB_USERNAME
+        value: ${db.USERNAME}
+      - key: DB_PASSWORD
+        value: ${db.PASSWORD}
+      - key: APP_KEY
+        scope: RUN_AND_BUILD_TIME
+        value: base64:kL7eY9nZ3jQ5pR8sT1vW2xY3zA4bC5dE6fG7hI8jK9lM0nO1pQ2rS3tU4vV5wX
+      - key: JWT_SECRET
+        scope: RUN_AND_BUILD_TIME
+        value: your-jwt-secret-key-change-this
+    http_port: 8000
+    health_check:
+      http_path: /api/health
+
+# Base de données MySQL
+databases:
+  - name: db
+    engine: MYSQL
+    version: "8.0"
+    production: true
+    encryption: true

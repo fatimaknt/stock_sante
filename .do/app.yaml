@@ -1,0 +1,63 @@
+name: stock-sante
+services:
+  - name: frontend
+    github:
+      repo: fatimaknt/stock_sante
+      branch: main
+      deploy_on_push: true
+    source_dir: frontend
+    build_command: npm ci && npm run build
+    run_command: npm start
+    envs:
+      - key: NEXT_PUBLIC_API_URL
+        value: ${backend.PUBLIC_URL}/api
+      - key: NODE_ENV
+        value: production
+    http_port: 3000
+    health_check:
+      http_path: /
+
+  - name: backend
+    github:
+      repo: fatimaknt/stock_sante
+      branch: main
+      deploy_on_push: true
+    source_dir: api
+    build_command: composer install --no-dev && php artisan migrate --force
+    run_command: php -S 0.0.0.0:8000 -t public
+    envs:
+      - key: PORT
+        value: "8000"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        value: ${backend.PUBLIC_URL}
+      - key: DB_HOST
+        value: ${db.HOSTNAME}
+      - key: DB_PORT
+        value: "${db.PORT}"
+      - key: DB_DATABASE
+        value: ${db.DATABASE}
+      - key: DB_USERNAME
+        value: ${db.USERNAME}
+      - key: DB_PASSWORD
+        value: ${db.PASSWORD}
+      - key: APP_KEY
+        scope: RUN_AND_BUILD_TIME
+        value: base64:nw2mYqHl/oYvQa9pLkRtZwXbCdEfGhIjKmNoPqRsTuVwXyZaBc
+      - key: JWT_SECRET
+        scope: RUN_AND_BUILD_TIME
+        value: stock-sante-jwt-secret-change-in-production
+    http_port: 8000
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 30
+      max_retries: 5
+
+databases:
+  - name: db
+    engine: MYSQL
+    version: "8.0"
+    production: true
