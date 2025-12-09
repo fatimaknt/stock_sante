@@ -18,12 +18,18 @@ COPY . .
 # Installer les dépendances
 RUN composer install --no-dev --optimize-autoloader
 
+# Générer la clé d'application
+RUN php artisan key:generate --force || true
+
 # Exposer le port
 EXPOSE 8000
 
-# Script de démarrage avec migrations
+# Script de démarrage avec migrations et serveur
 RUN echo '#!/bin/bash\n\
-echo "=== Laravel Migration Starting ==="\n\
+echo "=== Setting up Laravel ==="\n\
+php artisan cache:clear\n\
+php artisan config:clear\n\
+echo "=== Running Migrations ==="\n\
 php artisan migrate --force 2>&1 || echo "Migration encountered an issue but continuing..."\n\
 echo "=== Starting PHP Server ==="\n\
 php -S 0.0.0.0:8000 -t public' > /app/start.sh && chmod +x /app/start.sh
