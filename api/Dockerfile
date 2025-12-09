@@ -18,9 +18,6 @@ COPY . .
 # Installer les dépendances
 RUN composer install --no-dev --optimize-autoloader
 
-# Migrations
-RUN php artisan migrate --force --no-interaction
-
 # Exposer le port
 EXPOSE 8000
 
