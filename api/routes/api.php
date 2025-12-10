@@ -2,6 +2,11 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\{ProductController,ReceiptController,StockOutController,InventoryController,StatsController,CategoryController,UserController,AuthController,UserActivationController,VehicleController,MaintenanceController,ApprovalController,NeedController};
 
+// Route de test pour vérifier que Laravel fonctionne
+Route::get('test', function () {
+    return response()->json(['status' => 'ok', 'message' => 'API is working']);
+});
+
 // Routes publiques (pas d'authentification)
 Route::post('auth/login', [AuthController::class,'login']);
 Route::post('auth/register', [AuthController::class,'register']);
