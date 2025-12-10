@@ -35,8 +35,10 @@ mkdir -p /app/storage/logs\n\
 chmod -R 775 /app/storage\n\
 echo "=== Running Migrations ==="\n\
 php artisan migrate --force 2>&1 || echo "Migration encountered an issue but continuing..."\n\
+echo "=== Testing Laravel bootstrap ==="\n\
+php artisan tinker --execute="echo \"Laravel OK\";" 2>&1 || echo "Tinker test skipped"\n\
 echo "=== Starting PHP Server with Debug ==="\n\
-exec php -d display_errors=1 -d error_reporting=E_ALL -S 0.0.0.0:8000 -t public 2>&1' > /app/start.sh && chmod +x /app/start.sh
+exec php -d display_errors=On -d error_reporting=E_ALL -d error_log=/app/storage/logs/php-error.log -S 0.0.0.0:8000 -t public' > /app/start.sh && chmod +x /app/start.sh
 
 # Lancer l'app
 CMD ["/app/start.sh"]
