@@ -7,6 +7,16 @@ Route::get('test', function () {
     return response()->json(['status' => 'ok', 'message' => 'API is working']);
 });
 
+// Route de test pour voir les users (sans auth pour le debug)
+Route::get('test/users', function () {
+    try {
+        $users = \App\Models\User::limit(5)->get(['id', 'name', 'email', 'role']);
+        return response()->json(['status' => 'ok', 'users' => $users]);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+});
+
 // Routes publiques (pas d'authentification)
 Route::post('auth/login', [AuthController::class,'login']);
 Route::post('auth/register', [AuthController::class,'register']);
