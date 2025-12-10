@@ -17,6 +17,21 @@ Route::get('test/users', function () {
     }
 });
 
+// Route de test pour vérifier la connexion
+Route::post('test/login', function (\Illuminate\Http\Request $request) {
+    try {
+        $email = $request->input('email', 'test@example.com');
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Login test endpoint',
+            'email' => $email,
+            'hint' => 'Use /api/auth/login for real authentication'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+});
+
 // Routes publiques (pas d'authentification)
 Route::post('auth/login', [AuthController::class,'login']);
 Route::post('auth/register', [AuthController::class,'register']);
