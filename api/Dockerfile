@@ -26,13 +26,17 @@ EXPOSE 8000
 
 # Script de démarrage avec migrations et serveur
 RUN echo '#!/bin/bash\n\
+set -e\n\
 echo "=== Setting up Laravel ==="\n\
-php artisan cache:clear\n\
-php artisan config:clear\n\
+php artisan cache:clear 2>&1 || true\n\
+php artisan config:clear 2>&1 || true\n\
+echo "=== Checking storage permissions ==="\n\
+mkdir -p /app/storage/logs\n\
+chmod -R 775 /app/storage\n\
 echo "=== Running Migrations ==="\n\
 php artisan migrate --force 2>&1 || echo "Migration encountered an issue but continuing..."\n\
-echo "=== Starting PHP Server ==="\n\
-php -S 0.0.0.0:8000 -t public' > /app/start.sh && chmod +x /app/start.sh
+echo "=== Starting PHP Server with Debug ==="\n\
+exec php -d display_errors=1 -d error_reporting=E_ALL -S 0.0.0.0:8000 -t public 2>&1' > /app/start.sh && chmod +x /app/start.sh
 
 # Lancer l'app
 CMD ["/app/start.sh"]
