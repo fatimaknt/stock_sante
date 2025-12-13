@@ -32,6 +32,16 @@ Route::post('test/login', function (\Illuminate\Http\Request $request) {
     }
 });
 
+// Route pour exécuter le seeder (temporaire, pour test)
+Route::get('seed-categories', function () {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\CategorySeeder']);
+        return response()->json(['status' => 'ok', 'message' => 'Categories seeded successfully']);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+});
+
 // Routes publiques (pas d'authentification)
 Route::post('auth/login', [AuthController::class,'login']);
 Route::post('auth/register', [AuthController::class,'register']);
@@ -39,6 +49,7 @@ Route::get('auth/validate-token', [UserActivationController::class,'validateToke
 Route::post('auth/activate', [UserActivationController::class,'activate']);
 Route::get('auth/google', [AuthController::class,'redirectToGoogle']);
 Route::get('auth/google/callback', [AuthController::class,'handleGoogleCallback']);
+Route::get('categories', [CategoryController::class,'index']); // Categories publiques
 
 // Routes protégées (authentification requise)
 Route::middleware('auth:sanctum')->group(function () {
@@ -63,9 +74,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Statistiques
     Route::get('stats', [StatsController::class,'index']);
-
-    // Catégories
-    Route::get('categories', [CategoryController::class,'index']);
 
     // Utilisateurs
     Route::get('users', [UserController::class,'index']);
