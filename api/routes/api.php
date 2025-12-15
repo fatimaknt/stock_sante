@@ -28,6 +28,20 @@ Route::get('test/products', function () {
     }
 });
 
+// Route protégée simple pour les produits (alternative au ResourceController)
+Route::middleware('auth:sanctum')->get('products-simple', function () {
+    try {
+        $products = \App\Models\Product::orderByDesc('id')->get();
+        return response()->json(['items' => $products], 200);
+    } catch (\Throwable $e) {
+        \Log::error('ProductsSimple error: ' . $e->getMessage());
+        return response()->json([
+            'error' => 'Server error',
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+});
+
 // Route de test pour vérifier la connexion
 Route::post('test/login', function (\Illuminate\Http\Request $request) {
     try {
