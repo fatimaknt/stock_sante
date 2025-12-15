@@ -2,7 +2,7 @@ import React, { useEffect, useState, FormEvent, useMemo } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
 import { PlusIcon, TrashIcon, InboxIcon, MagnifyingGlassIcon, XMarkIcon, CubeIcon, EyeIcon, DocumentArrowDownIcon, ChevronLeftIcon, ChevronRightIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
-import { getJSON, API } from '../utils/api';
+import { getJSON, getJSONPublic, API } from '../utils/api';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -79,7 +79,7 @@ export default function ReceiptsPage() {
         try {
             const [p, c, r] = await Promise.all([
                 getJSON(API('/products')) as Promise<any>,
-                getJSON(API('/categories')).catch(() => CATEGORIES_FALLBACK) as Promise<any>,
+                getJSONPublic(API('/categories')).catch(() => CATEGORIES_FALLBACK) as Promise<any>,
                 getJSON(API('/receipts')) as Promise<any>
             ]);
             setProducts((p.items || []).map((x: any) => ({ id: x.id, name: x.name })));
@@ -1194,8 +1194,8 @@ export default function ReceiptsPage() {
                                     onClick={() => setReceiptsCurrentPage(prev => Math.max(1, prev - 1))}
                                     disabled={receiptsCurrentPage === 1}
                                     className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${receiptsCurrentPage === 1
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
                                         }`}
                                 >
                                     <ChevronLeftIcon className="w-5 h-5" />
@@ -1223,8 +1223,8 @@ export default function ReceiptsPage() {
                                                     <button
                                                         onClick={() => setReceiptsCurrentPage(page)}
                                                         className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${receiptsCurrentPage === page
-                                                                ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg'
-                                                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                                            ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg'
+                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
                                                             }`}
                                                     >
                                                         {page}
@@ -1240,8 +1240,8 @@ export default function ReceiptsPage() {
                                     onClick={() => setReceiptsCurrentPage(prev => Math.min(Math.ceil(filteredRows.length / receiptsItemsPerPage), prev + 1))}
                                     disabled={receiptsCurrentPage >= Math.ceil(filteredRows.length / receiptsItemsPerPage)}
                                     className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${receiptsCurrentPage >= Math.ceil(filteredRows.length / receiptsItemsPerPage)
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
                                         }`}
                                 >
                                     <span>Suivant</span>
