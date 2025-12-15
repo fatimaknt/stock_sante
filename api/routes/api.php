@@ -52,6 +52,16 @@ Route::get('seed-admin', function () {
     }
 });
 
+// Route pour créer les produits
+Route::get('seed-products', function () {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\ProductSeeder']);
+        return response()->json(['status' => 'ok', 'message' => 'Products seeded successfully', 'count' => \App\Models\Product::count()]);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+});
+
 // Routes publiques (pas d'authentification)
 Route::post('auth/login', [AuthController::class,'login']);
 Route::post('auth/register', [AuthController::class,'register']);
