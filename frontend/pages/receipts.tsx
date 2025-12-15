@@ -13,14 +13,12 @@ type ReceiptRow = { id: number; ref?: string | null; supplier: string | null; ag
 type Item = { product_ref?: string; product_name: string; product_category_id?: string; quantity: number; unit_price: number };
 
 const CATEGORIES_FALLBACK: Category[] = [
-    { id: 1, name: 'Médicaments' },
-    { id: 2, name: 'Fournitures Médicales' },
-    { id: 3, name: 'Équipements' },
-    { id: 4, name: 'Consommables' },
-    { id: 5, name: 'Vaccins' },
-    { id: 6, name: 'Tests Diagnostiques' },
-    { id: 7, name: "Produits d'Hygiène" },
-    { id: 8, name: 'Autres' },
+    { id: 1, name: 'Consommable Informatique' },
+    { id: 2, name: 'Matériel informatique' },
+    { id: 3, name: 'Médicaments' },
+    { id: 4, name: 'Mobilier de bureau' },
+    { id: 5, name: "Produits d'entretien" },
+    { id: 6, name: 'Autres' },
 ];
 
 const getStatusInfo = (status?: string) => {
