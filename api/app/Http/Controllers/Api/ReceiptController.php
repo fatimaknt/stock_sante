@@ -95,7 +95,7 @@ class ReceiptController extends Controller
                 'items' => 'required|array|min:1',
                 'items.*.product_id' => 'nullable|integer|exists:products,id',
                 'items.*.product_name' => 'nullable|string',
-                'items.*.product_category_id' => 'nullable|integer|exists:categories,id',
+                'items.*.product_category_id' => 'nullable|integer',  // Don't validate exists, just integer
                 'items.*.product_category' => 'nullable|string',
                 'items.*.quantity' => 'required|integer|min:1',
                 'items.*.unit_price' => 'nullable|numeric',
