@@ -42,6 +42,16 @@ Route::get('seed-categories', function () {
     }
 });
 
+// Route pour créer l'utilisateur admin
+Route::get('seed-admin', function () {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\DefaultUserSeeder']);
+        return response()->json(['status' => 'ok', 'message' => 'Admin user created', 'email' => 'admin@stockpro.com', 'password' => 'admin123']);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+});
+
 // Routes publiques (pas d'authentification)
 Route::post('auth/login', [AuthController::class,'login']);
 Route::post('auth/register', [AuthController::class,'register']);
