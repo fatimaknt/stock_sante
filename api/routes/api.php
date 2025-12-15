@@ -17,6 +17,17 @@ Route::get('test/users', function () {
     }
 });
 
+// Route de test pour voir les produits (sans auth pour le debug)
+Route::get('test/products', function () {
+    try {
+        $count = \App\Models\Product::count();
+        $products = \App\Models\Product::limit(5)->get();
+        return response()->json(['status' => 'ok', 'total_count' => $count, 'products' => $products]);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+});
+
 // Route de test pour vérifier la connexion
 Route::post('test/login', function (\Illuminate\Http\Request $request) {
     try {
