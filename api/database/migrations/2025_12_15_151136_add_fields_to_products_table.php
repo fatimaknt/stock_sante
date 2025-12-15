@@ -14,19 +14,19 @@ return new class extends Migration
         Schema::table('products', function (Blueprint $table) {
             // Add unit column if it doesn't exist
             if (!Schema::hasColumn('products', 'unit')) {
-                $table->string('unit')->default('Unité')->after('name');
+                $table->string('unit')->default('Unité');
             }
             // Add stock_quantity column if it doesn't exist
             if (!Schema::hasColumn('products', 'stock_quantity')) {
-                $table->integer('stock_quantity')->default(0)->after('quantity');
+                $table->integer('stock_quantity')->default(0);
             }
             // Add unit_price column if it doesn't exist
             if (!Schema::hasColumn('products', 'unit_price')) {
-                $table->decimal('unit_price', 12, 2)->default(0)->after('price');
+                $table->decimal('unit_price', 12, 2)->default(0);
             }
             // Add description column if it doesn't exist
             if (!Schema::hasColumn('products', 'description')) {
-                $table->text('description')->nullable()->after('critical_level');
+                $table->text('description')->nullable();
             }
         });
     }
