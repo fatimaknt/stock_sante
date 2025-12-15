@@ -188,6 +188,45 @@ class ReceiptController extends Controller
             // Sinon, créer une PendingOperation (pas dans receipts, pas de stock mis à jour)
             \Log::info('ReceiptController::store - Non-admin user, creating pending operation');
 
+            // IMPORTANT: Créer les produits MÊME pour les réceptions en attente
+            // Sinon les produits ne seront pas visibles jusqu'à approbation
+            foreach($v['items'] as $it) {
+                $productId = $it['product_id'] ?? null;
+
+                // Si product_name est fourni mais pas product_id, chercher ou créer le produit
+                if (!$productId && isset($it['product_name']) && trim($it['product_name']) !== '') {
+                    $product = Product::where('name', trim($it['product_name']))->first();
+                    if (!$product) {
+                        // Déterminer la catégorie
+                        $categoryName = 'Non catégorisé';
+                        $categoryId = null;
+
+                        if (!empty($it['product_category_id'])) {
+                            // Si category_id est fourni, chercher la catégorie
+                            $category = Category::find($it['product_category_id']);
+                            if ($category) {
+                                $categoryName = $category->name;
+                                $categoryId = $category->id;
+                            }
+                        } elseif (!empty($it['product_category'])) {
+                            // Si category name est fourni directement
+                            $categoryName = trim($it['product_category']);
+                        }
+
+                        // Créer un nouveau produit si il n'existe pas
+                        $product = Product::create([
+                            'ref' => !empty($it['product_ref']) ? trim($it['product_ref']) : null,
+                            'name' => trim($it['product_name']),
+                            'category' => $categoryName,
+                            'category_id' => $categoryId,
+                            'quantity' => 0,
+                            'price' => $it['unit_price'] ?? 0,
+                            'critical_level' => 10,
+                        ]);
+                    }
+                }
+            }
+
             $pendingOp = PendingOperation::create([
                 'type' => 'receipt',
                 'data' => $v, // Stocker toutes les données de la réception
@@ -198,7 +237,7 @@ class ReceiptController extends Controller
             \Log::info('ReceiptController::store - PendingOperation created with ID: ' . $pendingOp->id);
 
             return response()->json([
-                'message' => 'Votre réception a été créée et est en attente d\'approbation',
+                'message' => 'Votre réception a été créée et est en attente d\'approbation. Les produits sont visibles immédiatement.',
                 'id' => $pendingOp->id,
                 'status' => 'pending',
                 'pending_operation_id' => $pendingOp->id,
