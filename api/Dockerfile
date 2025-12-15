@@ -24,7 +24,7 @@ RUN php artisan key:generate --force || true
 # Exposer le port
 EXPOSE 8000
 
-# Script de démarrage avec migrations et serveur
+# Script de démarrage avec migrations et seeders et serveur
 RUN echo '#!/bin/bash\n\
 set -e\n\
 echo "=== Setting up Laravel ==="\n\
@@ -35,6 +35,8 @@ mkdir -p /app/storage/logs\n\
 chmod -R 775 /app/storage\n\
 echo "=== Running Migrations ==="\n\
 php artisan migrate --force 2>&1 || echo "Migration encountered an issue but continuing..."\n\
+echo "=== Running Seeds ==="\n\
+php artisan db:seed --force 2>&1 || echo "Seeding encountered an issue but continuing..."\n\
 echo "=== Testing Laravel bootstrap ==="\n\
 php artisan tinker --execute="echo \"Laravel OK\";" 2>&1 || echo "Tinker test skipped"\n\
 echo "=== Starting PHP Server with Debug ==="\n\
