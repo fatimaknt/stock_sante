@@ -10,11 +10,19 @@ class ProductController extends Controller
     public function index()
     {
         try {
+            \Log::info('ProductController::index called');
             $products = Product::orderByDesc('id')->get();
+            \Log::info('Retrieved ' . count($products) . ' products');
             return response()->json(['items' => $products], 200);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::error('ProductController::index error: ' . $e->getMessage());
-            return response()->json(['error' => 'Erreur serveur', 'message' => $e->getMessage()], 500);
+            \Log::error('Stack: ' . $e->getTraceAsString());
+            return response()->json([
+                'error' => 'Server error',
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ], 500);
         }
     }
 
