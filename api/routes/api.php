@@ -28,6 +28,24 @@ Route::get('test/products', function () {
     }
 });
 
+// Route de diagnostic - voir TOUS les produits avec tous les détails
+Route::get('test/products-all', function () {
+    try {
+        $allProducts = \App\Models\Product::all();
+        return response()->json([
+            'status' => 'ok',
+            'total_count' => $allProducts->count(),
+            'products' => $allProducts,
+            'database_info' => [
+                'connection' => config('database.default'),
+                'table_name' => 'products'
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
+    }
+});
+
 // Route protégée simple pour les produits (alternative au ResourceController)
 Route::middleware('auth:sanctum')->get('products-simple', function () {
     try {
