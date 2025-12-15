@@ -78,10 +78,10 @@ class ReceiptController extends Controller
     public function store(Request $r)
     {
         $user = Auth::user();
-        
+
         // Log pour déboguer
         \Log::info('ReceiptController::store - User ID: ' . $user->id . ', Role: ' . ($user->role ?? 'null'));
-        
+
         // Règles de validation de base
         $rules = [
             'supplier_id' => 'nullable|integer|exists:suppliers,id',
@@ -100,8 +100,12 @@ class ReceiptController extends Controller
             'items.*.unit_price' => 'nullable|numeric',
         ];
 
+        // Check if user is admin (more flexible check)
+        $isAdmin = strtolower($user->role ?? '') === 'administrateur' ||
+                   in_array('Gestion complète', (array)($user->permissions ?? []));
+
         // Si admin, validation stricte avec unicité
-        if ($user->role === 'Administrateur') {
+        if ($isAdmin) {
             $rules['ref'] = 'nullable|string|unique:receipts';
             $rules['items.*.product_ref'] = 'nullable|string|unique:products,ref';
         } else {
@@ -113,7 +117,7 @@ class ReceiptController extends Controller
         $v = $r->validate($rules);
 
         // Si l'utilisateur est admin, exécuter directement
-        if ($user->role === 'Administrateur') {
+        if ($isAdmin) {
             \Log::info('ReceiptController::store - Admin user, creating receipt directly');
             return DB::transaction(function() use($v, $user) {
                 $rec = Receipt::create(array_merge(
@@ -182,16 +186,16 @@ class ReceiptController extends Controller
 
         // Sinon, créer une PendingOperation (pas dans receipts, pas de stock mis à jour)
         \Log::info('ReceiptController::store - Non-admin user, creating pending operation');
-        
+
         $pendingOp = PendingOperation::create([
             'type' => 'receipt',
             'data' => $v, // Stocker toutes les données de la réception
             'user_id' => $user->id,
             'status' => 'pending',
         ]);
-        
+
         \Log::info('ReceiptController::store - PendingOperation created with ID: ' . $pendingOp->id);
-        
+
         return response()->json([
             'message' => 'Votre réception a été créée et est en attente d\'approbation',
             'id' => $pendingOp->id,
@@ -216,26 +220,26 @@ class ReceiptController extends Controller
         if (is_string($id) && strpos($id, 'pending_') === 0) {
             $pendingId = (int) str_replace('pending_', '', $id);
             $pendingOp = PendingOperation::findOrFail($pendingId);
-            
+
             // Vérifier que c'est bien une réception et qu'elle est en attente
             if ($pendingOp->type !== 'receipt' || $pendingOp->status !== 'pending') {
                 return response()->json(['message' => 'Cette réception ne peut pas être modifiée'], 400);
             }
-            
+
             // Vérifier que l'utilisateur est le créateur ou un admin
             $user = Auth::user();
             if ($pendingOp->user_id !== $user->id && $user->role !== 'Administrateur') {
                 return response()->json(['message' => 'Accès non autorisé'], 403);
             }
-            
+
             // Mettre à jour les données de la pending operation
             $data = $pendingOp->data;
             $data = array_merge($data, $v);
             $pendingOp->update(['data' => $data]);
-            
+
             return response()->json(['message' => 'Réception mise à jour avec succès'], 200);
         }
-        
+
         // Sinon, c'est une réception approuvée normale
         $receiptModel = Receipt::findOrFail($id);
         $receiptModel->update($v);
@@ -248,28 +252,28 @@ class ReceiptController extends Controller
         if (is_string($id) && strpos($id, 'pending_') === 0) {
             $pendingId = (int) str_replace('pending_', '', $id);
             $pendingOp = PendingOperation::findOrFail($pendingId);
-            
+
             // Vérifier que c'est bien une réception
             if ($pendingOp->type !== 'receipt') {
                 return response()->json(['message' => 'Opération invalide'], 400);
             }
-            
+
             // Vérifier que l'utilisateur est le créateur ou un admin
             $user = Auth::user();
             if ($pendingOp->user_id !== $user->id && $user->role !== 'Administrateur') {
                 return response()->json(['message' => 'Accès non autorisé'], 403);
             }
-            
+
             // Supprimer la pending operation
             $pendingOp->delete();
-            
+
             return response()->json(['message' => 'Réception supprimée avec succès'], 200);
         }
-        
+
         // Sinon, c'est une réception approuvée normale
         return DB::transaction(function() use($id) {
             $receiptModel = Receipt::findOrFail($id);
-            
+
             // Annuler les quantités ajoutées aux produits
             foreach($receiptModel->items as $item) {
                 $product = Product::find($item->product_id);
