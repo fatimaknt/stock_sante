@@ -1,5 +1,5 @@
 // Force absolute backend URL to prevent relative requests
-const BACKEND_URL = 'https://stock-sante-backend.onrender.com/api';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE || 'https://stock-sante-backend.onrender.com/api';
 
 export const API = (path: string) => {
     // Always return absolute URL
