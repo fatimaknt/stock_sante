@@ -26,6 +26,7 @@ class CorsMiddleware
             'https://www.optimatech.pro',
             'https://optimatech.pro',
             'https://stock-sante.onrender.com',
+            'https://stock-sante-backend.onrender.com',
         ];
 
         // Si l'origine est dans la liste autorisée, l'utiliser, sinon utiliser *
