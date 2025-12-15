@@ -36,29 +36,8 @@ export default function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolea
         { href: '/ai-agent', label: 'Agent IA', icon: 'ai-robot', perm: null, adminOnly: false },
         { href: '/settings', label: 'Paramètres', icon: 'cog', perm: 'Administration', adminOnly: true },
     ].filter(item => {
-        // Si l'utilisateur n'est pas encore chargé, ne rien afficher
-        if (!user) {
-            return false;
-        }
-        
-        // Vérification STRICTE : Seuls les admins voient les sections admin
-        if (item.adminOnly) {
-            return isAdmin();
-        }
-        
-        // Si l'utilisateur est admin, il voit tout
-        if (isAdmin()) {
-            return true;
-        }
-        
-        // Pour les utilisateurs et gestionnaires : vérifier UNIQUEMENT leurs permissions spécifiques
-        // Si pas de permission requise, afficher (ex: Dashboard, Véhicules)
-        if (!item.perm) {
-            return true;
-        }
-        
-        // Vérifier si l'utilisateur a la permission spécifique
-        return hasPermission(item.perm);
+        // Afficher tous les menus temporairement (sans vérification)
+        return true;
     });
 
     const isActive = (href: string) => {
@@ -106,22 +85,22 @@ export default function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolea
                 return (
                     <svg className={`${iconClass} ${colorClass}`} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         {/* Tête du robot */}
-                        <rect x="8" y="4" width="8" height="8" rx="1" stroke="currentColor" strokeWidth="2" fill="none"/>
+                        <rect x="8" y="4" width="8" height="8" rx="1" stroke="currentColor" strokeWidth="2" fill="none" />
                         {/* Yeux */}
-                        <circle cx="10.5" cy="7" r="1" fill="currentColor"/>
-                        <circle cx="13.5" cy="7" r="1" fill="currentColor"/>
+                        <circle cx="10.5" cy="7" r="1" fill="currentColor" />
+                        <circle cx="13.5" cy="7" r="1" fill="currentColor" />
                         {/* Bouche */}
-                        <rect x="10" y="9" width="4" height="1" rx="0.5" fill="currentColor"/>
+                        <rect x="10" y="9" width="4" height="1" rx="0.5" fill="currentColor" />
                         {/* Corps */}
-                        <rect x="6" y="12" width="12" height="8" rx="1" stroke="currentColor" strokeWidth="2" fill="none"/>
+                        <rect x="6" y="12" width="12" height="8" rx="1" stroke="currentColor" strokeWidth="2" fill="none" />
                         {/* Boutons sur le corps */}
-                        <circle cx="9" cy="15" r="0.8" fill="currentColor"/>
-                        <circle cx="12" cy="15" r="0.8" fill="currentColor"/>
-                        <circle cx="15" cy="15" r="0.8" fill="currentColor"/>
+                        <circle cx="9" cy="15" r="0.8" fill="currentColor" />
+                        <circle cx="12" cy="15" r="0.8" fill="currentColor" />
+                        <circle cx="15" cy="15" r="0.8" fill="currentColor" />
                         {/* Bras gauche */}
-                        <rect x="3" y="13" width="3" height="2" rx="0.5" fill="currentColor"/>
+                        <rect x="3" y="13" width="3" height="2" rx="0.5" fill="currentColor" />
                         {/* Bras droit */}
-                        <rect x="18" y="13" width="3" height="2" rx="0.5" fill="currentColor"/>
+                        <rect x="18" y="13" width="3" height="2" rx="0.5" fill="currentColor" />
                     </svg>
                 );
             default:
