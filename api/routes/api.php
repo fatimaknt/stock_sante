@@ -107,7 +107,8 @@ Route::get('seed-products', function () {
 
 // Routes publiques (pas d'authentification)
 Route::post('auth/login', [AuthController::class,'login']);
-Route::post('auth/register', [AuthController::class,'register']);
+// ❌ ENREGISTREMENT DÉSACTIVÉ - Seul l'admin peut créer des comptes
+// Route::post('auth/register', [AuthController::class,'register']);
 Route::get('auth/validate-token', [UserActivationController::class,'validateToken']);
 Route::post('auth/activate', [UserActivationController::class,'activate']);
 Route::get('auth/google', [AuthController::class,'redirectToGoogle']);
