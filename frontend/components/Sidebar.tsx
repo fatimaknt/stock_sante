@@ -43,14 +43,11 @@ export default function Sidebar({ isCollapsed, onToggle }: { isCollapsed: boolea
         
         // Vérification STRICTE : Seuls les admins voient les sections admin
         if (item.adminOnly) {
-            if (user.role !== 'Administrateur') {
-                return false;
-            }
-            return true;
+            return isAdmin();
         }
         
         // Si l'utilisateur est admin, il voit tout
-        if (user.role === 'Administrateur') {
+        if (isAdmin()) {
             return true;
         }
         
