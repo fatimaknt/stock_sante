@@ -109,8 +109,9 @@ Route::get('seed-products', function () {
 Route::post('auth/login', [AuthController::class,'login']);
 // ❌ ENREGISTREMENT DÉSACTIVÉ - Seul l'admin peut créer des comptes
 // Route::post('auth/register', [AuthController::class,'register']);
-Route::get('auth/validate-token', [UserActivationController::class,'validateToken']);
-Route::post('auth/activate', [UserActivationController::class,'activate']);
+// ❌ ACTIVATION DÉSACTIVÉE - En attente de configuration
+// Route::get('auth/validate-token', [UserActivationController::class,'validateToken']);
+// Route::post('auth/activate', [UserActivationController::class,'activate']);
 Route::get('auth/google', [AuthController::class,'redirectToGoogle']);
 Route::get('auth/google/callback', [AuthController::class,'handleGoogleCallback']);
 Route::get('categories', [CategoryController::class,'index']); // Categories publiques
