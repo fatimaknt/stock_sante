@@ -1,7 +1,17 @@
 // Frontend API configuration - Production: stock-sante-backend.onrender.com
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://stock-sante-backend.onrender.com/api';
 
-export const API = (path: string) => `${API_BASE}${path}`;
+// Debug log
+if (typeof window !== 'undefined') {
+    console.log('🔗 API_BASE configured:', API_BASE);
+    console.log('🔗 NEXT_PUBLIC_API_BASE env:', process.env.NEXT_PUBLIC_API_BASE);
+}
+
+export const API = (path: string) => {
+    const fullUrl = `${API_BASE}${path}`;
+    console.log('📡 API call:', fullUrl);
+    return fullUrl;
+};
 
 // Fonction publique (sans token) pour les pages publiques
 export async function getJSONPublic(input: RequestInfo | URL, init?: RequestInit) {
