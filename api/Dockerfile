@@ -21,26 +21,11 @@ RUN composer install --no-dev --optimize-autoloader
 # Générer la clé d'application
 RUN php artisan key:generate --force || true
 
-# Exposer le port
 EXPOSE 8000
 
-# Script de démarrage avec migrations et seeders et serveur
-RUN echo '#!/bin/bash\n\
-set -e\n\
-echo "=== Setting up Laravel ==="\n\
-php artisan cache:clear 2>&1 || true\n\
-php artisan config:clear 2>&1 || true\n\
-echo "=== Checking storage permissions ==="\n\
-mkdir -p /app/storage/logs\n\
-chmod -R 775 /app/storage\n\
-echo "=== Running Migrations ==="\n\
-php artisan migrate --force 2>&1 || echo "Migration encountered an issue but continuing..."\n\
-echo "=== Running Seeds ==="\n\
-php artisan db:seed --force 2>&1 || echo "Seeding encountered an issue but continuing..."\n\
-echo "=== Testing Laravel bootstrap ==="\n\
-php artisan tinker --execute="echo \"Laravel OK\";" 2>&1 || echo "Tinker test skipped"\n\
-echo "=== Starting PHP Server with Debug ==="\n\
-exec php -d display_errors=On -d error_reporting=E_ALL -d error_log=/app/storage/logs/php-error.log -S 0.0.0.0:8000 -t public' > /app/start.sh && chmod +x /app/start.sh
+# Copier le script de démarrage
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
 # Lancer l'app
 CMD ["/app/start.sh"]
