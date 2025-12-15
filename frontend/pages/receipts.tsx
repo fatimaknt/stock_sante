@@ -2,7 +2,7 @@ import React, { useEffect, useState, FormEvent, useMemo } from 'react';
 import Layout from '../components/Layout';
 import TopBar from '../components/TopBar';
 import { PlusIcon, TrashIcon, InboxIcon, MagnifyingGlassIcon, XMarkIcon, CubeIcon, EyeIcon, DocumentArrowDownIcon, ChevronLeftIcon, ChevronRightIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
-import { getJSON, getJSONPublic, API } from '../utils/api';
+import { getJSON, API } from '../utils/api';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,11 +13,14 @@ type ReceiptRow = { id: number; ref?: string | null; supplier: string | null; ag
 type Item = { product_ref?: string; product_name: string; product_category_id?: string; quantity: number; unit_price: number };
 
 const CATEGORIES_FALLBACK: Category[] = [
-    { id: 1, name: 'Consommable Informatique' },
-    { id: 2, name: 'Matériel informatique' },
-    { id: 3, name: 'Médicaments' },
-    { id: 4, name: 'Mobilier de bureau' },
-    { id: 5, name: "Produits d'entretien" },
+    { id: 1, name: 'Médicaments' },
+    { id: 2, name: 'Fournitures Médicales' },
+    { id: 3, name: 'Équipements' },
+    { id: 4, name: 'Consommables' },
+    { id: 5, name: 'Vaccins' },
+    { id: 6, name: 'Tests Diagnostiques' },
+    { id: 7, name: "Produits d'Hygiène" },
+    { id: 8, name: 'Autres' },
 ];
 
 const getStatusInfo = (status?: string) => {
@@ -77,13 +80,12 @@ export default function ReceiptsPage() {
 
     const load = async () => {
         try {
-            const [p, c, r] = await Promise.all([
+            const [p, r] = await Promise.all([
                 getJSON(API('/products')) as Promise<any>,
-                getJSONPublic(API('/categories')).catch(() => CATEGORIES_FALLBACK) as Promise<any>,
                 getJSON(API('/receipts')) as Promise<any>
             ]);
             setProducts((p.items || []).map((x: any) => ({ id: x.id, name: x.name })));
-            setCategories(Array.isArray(c) ? c : CATEGORIES_FALLBACK);
+            setCategories(CATEGORIES_FALLBACK); // Utiliser directement le fallback local
             console.log('Réceptions chargées:', r);
             setRows(Array.isArray(r) ? r : []);
             setError('');
