@@ -9,7 +9,12 @@ class ProductController extends Controller
 {
     public function index()
     {
-        return ['items' => Product::orderByDesc('id')->get()];
+        try {
+            return ['items' => Product::orderByDesc('id')->get()];
+        } catch (\Exception $e) {
+            \Log::error('ProductController::index error: ' . $e->getMessage());
+            return response()->json(['error' => 'Erreur serveur', 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function store(Request $r)
