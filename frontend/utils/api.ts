@@ -1,15 +1,6 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://127.0.0.1:8000/api';
+const API_BASE = 'https://stock-sante-backend.onrender.com/api';
 
-// Log for debugging
-if (typeof window !== 'undefined') {
-    console.log('API_BASE configured as:', API_BASE);
-}
-
-export const API = (path: string) => {
-    const fullUrl = `${API_BASE}${path}`;
-    console.log('API call:', fullUrl);
-    return fullUrl;
-};
+export const API = (path: string) => `${API_BASE}${path}`;
 
 // Fonction publique (sans token) pour les pages publiques
 export async function getJSONPublic(input: RequestInfo | URL, init?: RequestInit) {
