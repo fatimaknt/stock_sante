@@ -1,21 +1,20 @@
-// Frontend API configuration - Production: stock-sante-backend.onrender.com
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://stock-sante-backend.onrender.com/api';
-
-// Debug log
-if (typeof window !== 'undefined') {
-    console.log('🔗 API_BASE configured:', API_BASE);
-    console.log('🔗 NEXT_PUBLIC_API_BASE env:', process.env.NEXT_PUBLIC_API_BASE);
-}
+// Force absolute backend URL to prevent relative requests
+const BACKEND_URL = 'https://stock-sante-backend.onrender.com/api';
 
 export const API = (path: string) => {
-    const fullUrl = `${API_BASE}${path}`;
-    console.log('📡 API call:', fullUrl);
-    return fullUrl;
+    // Always return absolute URL
+    const url = `${BACKEND_URL}${path}`;
+    console.log('📡 Full URL:', url);
+    return url;
 };
 
 // Fonction publique (sans token) pour les pages publiques
 export async function getJSONPublic(input: RequestInfo | URL, init?: RequestInit) {
-    const res = await fetch(input, {
+    // Ensure we have absolute URL
+    const urlStr = String(input);
+    const absoluteUrl = urlStr.startsWith('http') ? urlStr : `${BACKEND_URL}${urlStr}`;
+
+    const res = await fetch(absoluteUrl, {
         ...init,
         headers: {
             'Content-Type': 'application/json',
@@ -46,13 +45,17 @@ export async function getJSON(input: RequestInfo | URL, init?: RequestInit) {
         throw new Error('Non authentifié');
     }
 
+    // Ensure we have absolute URL
+    const urlStr = String(input);
+    const absoluteUrl = urlStr.startsWith('http') ? urlStr : `${BACKEND_URL}${urlStr}`;
+
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
         ...init?.headers,
     };
 
-    const res = await fetch(input, {
+    const res = await fetch(absoluteUrl, {
         ...init,
         headers,
     });
