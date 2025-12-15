@@ -21,13 +21,17 @@ class CorsMiddleware
             'http://localhost:3000',
             'http://127.0.0.1:3000',
             'http://localhost:3001',
-            'http://127.0.0.1:3001'
+            'http://127.0.0.1:3001',
+            'http://localhost:10000',
+            'https://www.optimatech.pro',
+            'https://optimatech.pro',
+            'https://stock-sante.onrender.com',
         ];
-        
+
         // Si l'origine est dans la liste autorisée, l'utiliser, sinon utiliser *
         $allowedOrigin = ($origin && in_array($origin, $allowedOrigins)) ? $origin : '*';
         $allowCredentials = ($allowedOrigin !== '*');
-        
+
         // Gérer les requêtes OPTIONS (preflight) - DOIT être géré AVANT toute autre logique
         if ($request->getMethod() === 'OPTIONS') {
             $headers = [
@@ -37,11 +41,11 @@ class CorsMiddleware
                 'Access-Control-Expose-Headers' => 'Content-Length, Content-Type',
                 'Access-Control-Max-Age' => '86400',
             ];
-            
+
             if ($allowCredentials) {
                 $headers['Access-Control-Allow-Credentials'] = 'true';
             }
-            
+
             return response('', 200, $headers);
         }
 
@@ -55,7 +59,7 @@ class CorsMiddleware
         $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
         $response->headers->set('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
         $response->headers->set('Access-Control-Max-Age', '86400');
-        
+
         if ($allowCredentials) {
             $response->headers->set('Access-Control-Allow-Credentials', 'true');
         }
