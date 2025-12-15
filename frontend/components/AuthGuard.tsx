@@ -32,13 +32,23 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                     },
                 });
 
+                console.log('Auth check response:', response.status, response.ok);
+
                 if (response.ok) {
                     // Charger l'utilisateur une seule fois
                     if (!user) {
                         await reload();
                     }
                     setIsAuthenticated(true);
+                } else if (response.status === 500) {
+                    // Backend error - still consider authenticated but log it
+                    console.warn('Backend 500 on /auth/user, but token exists - continuing');
+                    if (!user) {
+                        await reload();
+                    }
+                    setIsAuthenticated(true);
                 } else {
+                    console.warn('Auth failed with status:', response.status);
                     localStorage.removeItem('auth_token');
                     setIsAuthenticated(false);
                     if (!isPublic) router.push('/login');

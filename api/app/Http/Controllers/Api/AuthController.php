@@ -110,47 +110,56 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
-        $user = $request->user();
-        
-        // S'assurer que le rôle existe et est valide
-        $role = $user->role ?? 'Utilisateur';
-        if (!in_array($role, ['Administrateur', 'Gestionnaire', 'Utilisateur'])) {
-            $role = 'Utilisateur';
-            $user->update(['role' => 'Utilisateur']);
-        }
-        
-        $currentPermissions = $user->permissions ?? [];
-        $expectedPermissions = $this->getDefaultPermissions($role);
-        
-        // Vérifier si l'utilisateur a "Gestion complète" mais n'est pas Administrateur
-        $hasGestionComplete = false;
-        foreach ($currentPermissions as $perm) {
-            if (strtolower(trim($perm)) === 'gestion complète') {
-                $hasGestionComplete = true;
-                break;
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Utilisateur non authentifié'], 401);
             }
+            
+            // S'assurer que le rôle existe et est valide
+            $role = $user->role ?? 'Utilisateur';
+            if (!in_array($role, ['Administrateur', 'Gestionnaire', 'Utilisateur'])) {
+                $role = 'Utilisateur';
+                $user->update(['role' => 'Utilisateur']);
+            }
+            
+            $currentPermissions = $user->permissions ?? [];
+            $expectedPermissions = $this->getDefaultPermissions($role);
+            
+            // Vérifier si l'utilisateur a "Gestion complète" mais n'est pas Administrateur
+            $hasGestionComplete = false;
+            foreach ($currentPermissions as $perm) {
+                if (strtolower(trim($perm)) === 'gestion complète') {
+                    $hasGestionComplete = true;
+                    break;
+                }
+            }
+            
+            // Si l'utilisateur a "Gestion complète" mais n'est pas Administrateur, corriger automatiquement
+            if ($hasGestionComplete && $role !== 'Administrateur') {
+                $user->update(['permissions' => $expectedPermissions]);
+                $currentPermissions = $expectedPermissions;
+            }
+            
+            // S'assurer que les permissions correspondent au rôle
+            if ($currentPermissions !== $expectedPermissions && $role !== 'Administrateur') {
+                $user->update(['permissions' => $expectedPermissions]);
+                $currentPermissions = $expectedPermissions;
+            }
+            
+            return response()->json([
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $role,
+                'status' => $user->status,
+                'permissions' => $currentPermissions,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('AuthController::user error: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'Erreur serveur', 'message' => $e->getMessage()], 500);
         }
-        
-        // Si l'utilisateur a "Gestion complète" mais n'est pas Administrateur, corriger automatiquement
-        if ($hasGestionComplete && $role !== 'Administrateur') {
-            $user->update(['permissions' => $expectedPermissions]);
-            $currentPermissions = $expectedPermissions;
-        }
-        
-        // S'assurer que les permissions correspondent au rôle
-        if ($currentPermissions !== $expectedPermissions && $role !== 'Administrateur') {
-            $user->update(['permissions' => $expectedPermissions]);
-            $currentPermissions = $expectedPermissions;
-        }
-        
-        return response()->json([
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $role, // Toujours retourner le rôle de la base de données
-            'status' => $user->status,
-            'permissions' => $currentPermissions,
-        ]);
     }
 
     public function register(Request $request)
