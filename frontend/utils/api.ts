@@ -1,4 +1,5 @@
-const API_BASE = 'https://stock-sante-backend.onrender.com/api';
+// Frontend API configuration - Production: stock-sante-backend.onrender.com
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://stock-sante-backend.onrender.com/api';
 
 export const API = (path: string) => `${API_BASE}${path}`;
 
