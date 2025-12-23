@@ -20,18 +20,19 @@ return new class extends Migration
             'Alcool 70%',
             'Spray antiseptique',
             'Pansements stériles 10x10',
-            'Coton stérile',
+            'Coton hydrophile',
             'Glucosamine',
             'Aspirine 500mg',
             'Vitamine C 1000mg',
             'Vaccin DTP',
-            'Vaccin ROR',
-            'Vaccin Grippe',
-            'Test Antigénique COVID',
+            'Vaccin RRO',
+            'Test COVID-19 Antigénique',
+            'Test Grippe A/B',
             'Test Sérologique VIH',
             'Savon antibactérien',
             'Gel hydroalcoolique',
             'Masques chirurgicaux',
+            'Désinfectant surface',
         ];
 
         DB::table('products')
