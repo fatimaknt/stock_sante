@@ -51,9 +51,12 @@ export default function ProductsPage(): JSX.Element {
     
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(10);
+    const [itemsPerPage] = useState(15);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Récupérer les acquéreurs uniques
+    // Récupérer les acquéreurs uniques (du cache local)
     const uniqueAcquirers = useMemo(() => {
         const acquirers = items
             .map(p => p.acquirer)
@@ -64,6 +67,7 @@ export default function ProductsPage(): JSX.Element {
     }, [items]);
 
     const filtered = useMemo(() => {
+        // Les filtres frontend seulement pour les données déjà chargées
         return items.filter(p => {
             // Filtre par recherche (réf, nom, catégorie)
             const matchesSearch = search === '' ||
@@ -86,22 +90,45 @@ export default function ProductsPage(): JSX.Element {
         });
     }, [items, search, selectedStatus, selectedCategory, selectedDate, selectedAcquirer]);
 
-    const load = async () => {
+    const load = async (page: number = 1) => {
         try {
+            setIsLoading(true);
             const [p, c] = await Promise.all([
-                getJSON(API('/products')) as Promise<any>,
+                // Charger seulement 15 produits par page
+                getJSON(API(`/products?page=${page}&per_page=${itemsPerPage}`)) as Promise<any>,
                 getJSON(API('/categories')).catch(() => CATEGORIES_FALLBACK) as Promise<any>
             ]);
             setItems(p.items || []);
+            setTotalItems(p.total || 0);
+            setTotalPages(p.last_page || 1);
             setCategories(Array.isArray(c) ? c : CATEGORIES_FALLBACK);
             setError('');
         } catch (err: any) {
             console.error(err);
             setError(err?.message || 'Erreur de chargement');
             setSuccess('');
+        } finally {
+            setIsLoading(false);
         }
     };
-    useEffect(() => { load(); }, []);
+    
+    // Charger les données au montage
+    useEffect(() => { 
+        setCurrentPage(1);
+        load(1); 
+    }, []);
+    
+    // Recharger quand on change de page
+    useEffect(() => {
+        if (currentPage > 0) {
+            load(currentPage);
+        }
+    }, [currentPage]);
+    
+    // Réinitialiser à la page 1 quand les filtres changent
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, selectedStatus, selectedCategory, selectedDate, selectedAcquirer]);
 
     useEffect(() => {
         if (success) {
@@ -183,7 +210,7 @@ export default function ProductsPage(): JSX.Element {
                 setSuccess('Produit ajouté avec succès');
             }
             closeModal();
-            load();
+            load(currentPage);
         } catch (err: any) { setError(err?.message || 'Erreur'); setSuccess(''); }
     };
 
@@ -192,7 +219,7 @@ export default function ProductsPage(): JSX.Element {
             await getJSON(API(`/products/${id}`), { method: 'DELETE' });
             setSuccess('Produit supprimé');
             setConfirmId(null);
-            load();
+            load(currentPage);
         } catch (err: any) { setError(err?.message || 'Erreur'); setSuccess(''); }
     };
 
@@ -495,28 +522,37 @@ export default function ProductsPage(): JSX.Element {
                             </div>
                             <div>
                                 <h3 className="text-2xl font-bold text-gray-900">Liste des produits</h3>
-                                <p className="text-sm text-gray-500">{filtered.length} produit{filtered.length > 1 ? 's' : ''}</p>
+                                <p className="text-sm text-gray-500">Affichage {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, totalItems)} sur {totalItems} produits (Page {currentPage}/{totalPages})</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
-                            {filtered.length > itemsPerPage && (
+                            {totalPages > 1 && (
                                 <p className="text-sm text-gray-600">
-                                    {((currentPage - 1) * itemsPerPage + 1)} - {Math.min(currentPage * itemsPerPage, filtered.length)} sur {filtered.length}
+                                    Page {currentPage} sur {totalPages}
                                 </p>
                             )}
-                        {filtered.length > 0 && (
+                        {items.length > 0 && (
                             <button
                                 onClick={exportAllProductsExcel}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg shadow-lg hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 font-medium"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg shadow-lg hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 font-medium disabled:opacity-50"
                                 title="Exporter tous les produits filtrés en Excel"
+                                disabled={isLoading}
                             >
                                 <DocumentArrowDownIcon className="w-5 h-5" />
-                                <span>Exporter tout en Excel</span>
+                                <span>Exporter</span>
                             </button>
                         )}
                         </div>
                     </div>
                     <div className="border rounded-xl overflow-hidden">
+                        {isLoading && (
+                            <div className="bg-white p-8 text-center">
+                                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+                                <p className="mt-2 text-gray-600">Chargement des produits...</p>
+                            </div>
+                        )}
+                        {!isLoading && (
+                            <>
                         <table className="min-w-full text-md">
                             <thead className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-b-2 border-emerald-200">
                                 <tr>
@@ -530,7 +566,7 @@ export default function ProductsPage(): JSX.Element {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.length === 0 ? (
+                                {items.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                                             <CubeIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
@@ -538,9 +574,7 @@ export default function ProductsPage(): JSX.Element {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filtered
-                                        .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                                        .map(r => (
+                                    items.map(r => (
                                         <tr key={r.id} className="border-t hover:bg-emerald-50 transition-colors">
                                             <td className="px-6 py-5 text-gray-700 font-mono text-sm">{r.ref || '-'}</td>
                                             <td className="px-6 py-5 font-semibold text-gray-900">{r.name}</td>
@@ -584,17 +618,19 @@ export default function ProductsPage(): JSX.Element {
                                 )}
                             </tbody>
                         </table>
+                            </>
+                        )}
                     </div>
 
                     {/* Pagination */}
-                    {filtered.length > itemsPerPage && (
+                    {totalPages > 1 && (
                         <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                    disabled={currentPage === 1}
+                                    disabled={currentPage === 1 || isLoading}
                                     className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                                        currentPage === 1
+                                        currentPage === 1 || isLoading
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
                                     }`}
@@ -603,16 +639,14 @@ export default function ProductsPage(): JSX.Element {
                                     <span>Précédent</span>
                                 </button>
                                 <div className="flex items-center gap-1">
-                                    {Array.from({ length: Math.ceil(filtered.length / itemsPerPage) }, (_, i) => i + 1)
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1)
                                         .filter(page => {
-                                            const totalPages = Math.ceil(filtered.length / itemsPerPage);
                                             if (totalPages <= 7) return true;
                                             if (page === 1 || page === totalPages) return true;
                                             if (Math.abs(page - currentPage) <= 1) return true;
                                             return false;
                                         })
                                         .map((page, index, array) => {
-                                            const totalPages = Math.ceil(filtered.length / itemsPerPage);
                                             const showEllipsis = index > 0 && array[index - 1] !== page - 1;
                                             const showEllipsisAfter = index < array.length - 1 && array[index + 1] !== page + 1 && page !== totalPages;
                                             
@@ -623,10 +657,11 @@ export default function ProductsPage(): JSX.Element {
                                                     )}
                                                     <button
                                                         onClick={() => setCurrentPage(page)}
+                                                        disabled={isLoading}
                                                         className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${
                                                             currentPage === page
                                                                 ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg'
-                                                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50'
                                                         }`}
                                                     >
                                                         {page}
@@ -639,10 +674,10 @@ export default function ProductsPage(): JSX.Element {
                                         })}
                                 </div>
                                 <button
-                                    onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filtered.length / itemsPerPage), prev + 1))}
-                                    disabled={currentPage >= Math.ceil(filtered.length / itemsPerPage)}
+                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                    disabled={currentPage >= totalPages || isLoading}
                                     className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                                        currentPage >= Math.ceil(filtered.length / itemsPerPage)
+                                        currentPage >= totalPages || isLoading
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
                                     }`}
