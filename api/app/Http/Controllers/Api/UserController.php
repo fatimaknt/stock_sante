@@ -17,14 +17,20 @@ class UserController extends Controller
     public function index()
     {
         $currentUser = \Illuminate\Support\Facades\Auth::user();
-        
+
         // Seuls les admins peuvent voir la liste des utilisateurs
         if ($currentUser->role !== 'Administrateur') {
             return response()->json(['message' => 'Accès non autorisé'], 403);
         }
-        
-        return User::orderByDesc('id')->get()->map(function ($user) {
-            return [
+
+        // Optimisation: paginer les résultats
+        $per_page = request()->query('per_page', 20);
+        $pagination = User::orderByDesc('id')->paginate($per_page);
+
+        $items = $pagination->items();
+        $users = [];
+        foreach ($items as $user) {
+            $users[] = [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
@@ -33,18 +39,26 @@ class UserController extends Controller
                 'last_login' => $user->last_login?->toDateTimeString(),
                 'permissions' => $user->permissions ?? [],
             ];
-        });
+        }
+
+        return response()->json([
+            'items' => $users,
+            'total' => $pagination->total(),
+            'per_page' => $pagination->perPage(),
+            'current_page' => $pagination->currentPage(),
+            'last_page' => $pagination->lastPage(),
+        ]);
     }
 
     public function store(Request $request)
     {
         $currentUser = \Illuminate\Support\Facades\Auth::user();
-        
+
         // Seuls les admins peuvent créer des utilisateurs
         if ($currentUser->role !== 'Administrateur') {
             return response()->json(['message' => 'Accès non autorisé'], 403);
         }
-        
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -69,12 +83,12 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $currentUser = \Illuminate\Support\Facades\Auth::user();
-        
+
         // Seuls les admins peuvent modifier des utilisateurs
         if ($currentUser->role !== 'Administrateur') {
             return response()->json(['message' => 'Accès non autorisé'], 403);
         }
-        
+
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
@@ -103,12 +117,12 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         $currentUser = \Illuminate\Support\Facades\Auth::user();
-        
+
         // Seuls les admins peuvent supprimer des utilisateurs
         if ($currentUser->role !== 'Administrateur') {
             return response()->json(['message' => 'Accès non autorisé'], 403);
         }
-        
+
         $user->delete();
         return ['deleted' => true];
     }
@@ -116,12 +130,12 @@ class UserController extends Controller
     public function invite(Request $request)
     {
         $currentUser = \Illuminate\Support\Facades\Auth::user();
-        
+
         // Seuls les admins peuvent inviter des utilisateurs
         if ($currentUser->role !== 'Administrateur') {
             return response()->json(['message' => 'Accès non autorisé'], 403);
         }
-        
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',

@@ -11,7 +11,14 @@ class ProductController extends Controller
     {
         try {
             \Log::info('ProductController::index called');
-            $products = Product::orderByDesc('id')->get();
+            // Optimisation: paginer les résultats (15 par page)
+            $per_page = request()->query('per_page', 15);
+            $page = request()->query('page', 1);
+
+            $products = Product::orderByDesc('id')
+                ->paginate($per_page)
+                ->items();
+
             \Log::info('Retrieved ' . count($products) . ' products');
             return response()->json(['items' => $products], 200);
         } catch (\Throwable $e) {
