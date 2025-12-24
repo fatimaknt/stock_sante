@@ -15,12 +15,18 @@ class ProductController extends Controller
             $per_page = request()->query('per_page', 15);
             $page = request()->query('page', 1);
 
-            $products = Product::orderByDesc('id')
-                ->paginate($per_page)
-                ->items();
+            $pagination = Product::orderByDesc('id')
+                ->paginate($per_page, ['id', 'name', 'ref', 'category', 'category_id', 'quantity', 'price', 'critical_level', 'supplier', 'acquirer', 'beneficiary', 'acquired_at', 'created_at']);
 
-            \Log::info('Retrieved ' . count($products) . ' products');
-            return response()->json(['items' => $products], 200);
+            \Log::info('Retrieved ' . count($pagination->items()) . ' products from page ' . $page);
+            
+            return response()->json([
+                'items' => $pagination->items(),
+                'total' => $pagination->total(),
+                'per_page' => $pagination->perPage(),
+                'current_page' => $pagination->currentPage(),
+                'last_page' => $pagination->lastPage(),
+            ], 200);
         } catch (\Throwable $e) {
             \Log::error('ProductController::index error: ' . $e->getMessage());
             \Log::error('Stack: ' . $e->getTraceAsString());

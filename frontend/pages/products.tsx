@@ -48,7 +48,7 @@ export default function ProductsPage(): JSX.Element {
     const [form, setForm] = useState({ ref: '', name: '', category_id: '', quantity: 0, price: 0, critical_level: 10, supplier: '', acquirer: '', beneficiary: '', acquired_at: '' });
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const statusDropdownRef = useRef<HTMLDivElement>(null);
-    
+
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(15);
@@ -111,20 +111,20 @@ export default function ProductsPage(): JSX.Element {
             setIsLoading(false);
         }
     };
-    
+
     // Charger les données au montage
-    useEffect(() => { 
+    useEffect(() => {
         setCurrentPage(1);
-        load(1); 
+        load(1);
     }, []);
-    
+
     // Recharger quand on change de page
     useEffect(() => {
         if (currentPage > 0) {
             load(currentPage);
         }
     }, [currentPage]);
-    
+
     // Réinitialiser à la page 1 quand les filtres changent
     useEffect(() => {
         setCurrentPage(1);
@@ -531,17 +531,17 @@ export default function ProductsPage(): JSX.Element {
                                     Page {currentPage} sur {totalPages}
                                 </p>
                             )}
-                        {items.length > 0 && (
-                            <button
-                                onClick={exportAllProductsExcel}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg shadow-lg hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 font-medium disabled:opacity-50"
-                                title="Exporter tous les produits filtrés en Excel"
-                                disabled={isLoading}
-                            >
-                                <DocumentArrowDownIcon className="w-5 h-5" />
-                                <span>Exporter</span>
-                            </button>
-                        )}
+                            {items.length > 0 && (
+                                <button
+                                    onClick={exportAllProductsExcel}
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg shadow-lg hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 font-medium disabled:opacity-50"
+                                    title="Exporter tous les produits filtrés en Excel"
+                                    disabled={isLoading}
+                                >
+                                    <DocumentArrowDownIcon className="w-5 h-5" />
+                                    <span>Exporter</span>
+                                </button>
+                            )}
                         </div>
                     </div>
                     <div className="border rounded-xl overflow-hidden">
@@ -553,71 +553,71 @@ export default function ProductsPage(): JSX.Element {
                         )}
                         {!isLoading && (
                             <>
-                        <table className="min-w-full text-md">
-                            <thead className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-b-2 border-emerald-200">
-                                <tr>
-                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Réf.</th>
-                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Nom</th>
-                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Catégorie</th>
-                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Quantité</th>
-                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Prix</th>
-                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Statut</th>
-                                    <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {items.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                                            <CubeIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                                            <p className="font-medium">Aucun produit trouvé</p>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    items.map(r => (
-                                        <tr key={r.id} className="border-t hover:bg-emerald-50 transition-colors">
-                                            <td className="px-6 py-5 text-gray-700 font-mono text-sm">{r.ref || '-'}</td>
-                                            <td className="px-6 py-5 font-semibold text-gray-900">{r.name}</td>
-                                            <td className="px-6 py-5 text-gray-700">{r.category}</td>
-                                            <td className="px-6 py-5 text-gray-700 font-medium">{r.quantity}</td>
-                                            <td className="px-6 py-5 text-gray-700 font-medium">{formatCurrency(Number(r.price))}</td>
-                                            <td className="px-6 py-5">
-                                                {(() => {
-                                                    const label = getStatusLabel(r);
-                                                    const color = label === 'Normal'
-                                                        ? 'bg-gradient-to-r from-green-600 to-green-700'
-                                                        : label === 'Faible'
-                                                            ? 'bg-gradient-to-r from-orange-600 to-orange-700'
-                                                            : 'bg-gradient-to-r from-red-600 to-red-700';
-                                                    return (
-                                                        <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold text-white shadow-sm ${color}`}>
-                                                            {label}
-                                                        </span>
-                                                    );
-                                                })()}
-                                            </td>
-                                            <td className="px-6 py-5">
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => exportSingleProductExcel(r)}
-                                                        className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-all transform hover:scale-110"
-                                                        aria-label="exporter ce produit en Excel"
-                                                        title="Exporter ce produit en Excel"
-                                                    >
-                                                        <DocumentArrowDownIcon className="w-5 h-5" />
-                                                    </button>
-                                                    <button onClick={() => setConfirmId(r.id)} className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110" aria-label="supprimer">
-                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
-                                            </td>
+                                <table className="min-w-full text-md">
+                                    <thead className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-b-2 border-emerald-200">
+                                        <tr>
+                                            <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Réf.</th>
+                                            <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Nom</th>
+                                            <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Catégorie</th>
+                                            <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Quantité</th>
+                                            <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Prix</th>
+                                            <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Statut</th>
+                                            <th className="text-left px-6 py-4 text-gray-800 font-bold uppercase tracking-wide text-xs">Actions</th>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    </thead>
+                                    <tbody>
+                                        {items.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                                                    <CubeIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                                                    <p className="font-medium">Aucun produit trouvé</p>
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            items.map(r => (
+                                                <tr key={r.id} className="border-t hover:bg-emerald-50 transition-colors">
+                                                    <td className="px-6 py-5 text-gray-700 font-mono text-sm">{r.ref || '-'}</td>
+                                                    <td className="px-6 py-5 font-semibold text-gray-900">{r.name}</td>
+                                                    <td className="px-6 py-5 text-gray-700">{r.category}</td>
+                                                    <td className="px-6 py-5 text-gray-700 font-medium">{r.quantity}</td>
+                                                    <td className="px-6 py-5 text-gray-700 font-medium">{formatCurrency(Number(r.price))}</td>
+                                                    <td className="px-6 py-5">
+                                                        {(() => {
+                                                            const label = getStatusLabel(r);
+                                                            const color = label === 'Normal'
+                                                                ? 'bg-gradient-to-r from-green-600 to-green-700'
+                                                                : label === 'Faible'
+                                                                    ? 'bg-gradient-to-r from-orange-600 to-orange-700'
+                                                                    : 'bg-gradient-to-r from-red-600 to-red-700';
+                                                            return (
+                                                                <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold text-white shadow-sm ${color}`}>
+                                                                    {label}
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => exportSingleProductExcel(r)}
+                                                                className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-green-50 hover:bg-green-100 text-green-600 transition-all transform hover:scale-110"
+                                                                aria-label="exporter ce produit en Excel"
+                                                                title="Exporter ce produit en Excel"
+                                                            >
+                                                                <DocumentArrowDownIcon className="w-5 h-5" />
+                                                            </button>
+                                                            <button onClick={() => setConfirmId(r.id)} className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110" aria-label="supprimer">
+                                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
                             </>
                         )}
                     </div>
@@ -629,11 +629,10 @@ export default function ProductsPage(): JSX.Element {
                                 <button
                                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                     disabled={currentPage === 1 || isLoading}
-                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                                        currentPage === 1 || isLoading
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${currentPage === 1 || isLoading
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-                                    }`}
+                                        }`}
                                 >
                                     <ChevronLeftIcon className="w-5 h-5" />
                                     <span>Précédent</span>
@@ -649,7 +648,7 @@ export default function ProductsPage(): JSX.Element {
                                         .map((page, index, array) => {
                                             const showEllipsis = index > 0 && array[index - 1] !== page - 1;
                                             const showEllipsisAfter = index < array.length - 1 && array[index + 1] !== page + 1 && page !== totalPages;
-                                            
+
                                             return (
                                                 <React.Fragment key={page}>
                                                     {showEllipsis && (
@@ -658,11 +657,10 @@ export default function ProductsPage(): JSX.Element {
                                                     <button
                                                         onClick={() => setCurrentPage(page)}
                                                         disabled={isLoading}
-                                                        className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${
-                                                            currentPage === page
+                                                        className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${currentPage === page
                                                                 ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg'
                                                                 : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {page}
                                                     </button>
@@ -676,11 +674,10 @@ export default function ProductsPage(): JSX.Element {
                                 <button
                                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                     disabled={currentPage >= totalPages || isLoading}
-                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                                        currentPage >= totalPages || isLoading
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${currentPage >= totalPages || isLoading
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-                                    }`}
+                                        }`}
                                 >
                                     <span>Suivant</span>
                                     <ChevronRightIcon className="w-5 h-5" />
