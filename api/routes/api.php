@@ -82,11 +82,13 @@ Route::post('test/login', function (\Illuminate\Http\Request $request) {
 
 // Routes publiques (pas d'authentification)
 Route::post('auth/login', [AuthController::class,'login']);
-//  ENREGISTREMENT DÉSACTIVÉ - Seul l'admin peut créer des comptes
+// ENREGISTREMENT DÉSACTIVÉ - Seul l'admin peut créer des comptes
 // Route::post('auth/register', [AuthController::class,'register']);
-//  ACTIVATION DÉSACTIVÉE - En attente de configuration
-// Route::get('auth/validate-token', [UserActivationController::class,'validateToken']);
-// Route::post('auth/activate', [UserActivationController::class,'activate']);
+
+// Routes d'activation (publiques - pour les nouveaux utilisateurs invités)
+Route::post('auth/validate-token', [UserActivationController::class,'validateToken']);
+Route::post('auth/activate', [UserActivationController::class,'activate']);
+
 Route::get('auth/google', [AuthController::class,'redirectToGoogle']);
 Route::get('auth/google/callback', [AuthController::class,'handleGoogleCallback']);
 Route::get('categories', [CategoryController::class,'index']); // Categories publiques
