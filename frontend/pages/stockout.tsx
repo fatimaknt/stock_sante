@@ -79,18 +79,21 @@ export default function StockOutPage() {
             const p = await getJSON(API('/products')) as any;
             setProducts((p.items || []).map((x: any) => ({ id: x.id, name: x.name, quantity: Number(x.quantity ?? 0) })));
             const s = await getJSON(API(`/stockouts?page=${stockOutsCurrentPage}&per_page=${stockOutsItemsPerPage}`)) as any;
+
+            let stockOutsData: StockOutRow[] = [];
             if (s && s.items) {
+                stockOutsData = s.items;
                 setRows(s.items);
                 setStockOutsTotalPages(s.last_page || 1);
                 setStockOutsTotalItems(s.total || 0);
             } else {
-                setRows(Array.isArray(s) ? s : []);
+                stockOutsData = Array.isArray(s) ? s : [];
+                setRows(stockOutsData);
             }
-            setIsLoading(false);
 
             // Calculer les top 5 bénéficiaires
             const beneficiaryMap = new Map<string, { productIds: Set<number>, exitCount: number, totalUnits: number }>();
-            s.forEach((r: StockOutRow) => {
+            stockOutsData.forEach((r: StockOutRow) => {
                 if (r.beneficiary) {
                     const key = r.beneficiary;
                     if (!beneficiaryMap.has(key)) {
@@ -114,12 +117,13 @@ export default function StockOutPage() {
                 .slice(0, 5);
 
             setTopBeneficiaries(top5);
-            // Ne pas effacer les messages de succès/erreur lors du chargement
+            setIsLoading(false);
         } catch (err: any) {
             console.error('Erreur de chargement:', err);
             setError(err?.message || 'Erreur de chargement');
             setRows([]);
             setProducts([]);
+            setIsLoading(false);
         }
     };
 
