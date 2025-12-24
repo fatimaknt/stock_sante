@@ -88,7 +88,11 @@ export default function NeedsPage() {
             const p = await getJSON(API('/products')) as any;
             setProducts((p.items || []).map((x: any) => ({ id: x.id, name: x.name, quantity: Number(x.quantity ?? 0) })));
             const n = await getJSON(API('/needs')) as any;
-            setNeeds(Array.isArray(n) ? n : []);
+            if (n && n.items) {
+                setNeeds(Array.isArray(n.items) ? n.items : []);
+            } else {
+                setNeeds(Array.isArray(n) ? n : []);
+            }
         } catch (err: any) {
             console.error('Erreur de chargement:', err);
             setError(err?.message || 'Erreur de chargement');

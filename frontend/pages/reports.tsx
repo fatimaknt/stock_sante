@@ -119,9 +119,9 @@ export default function ReportsPage() {
 
             setStats(statsData);
             setProducts((productsData.items || []) as Product[]);
-            setStockOuts((stockOutsData || []) as StockOut[]);
-            setReceipts((receiptsData || []) as Receipt[]);
-            setInventories((inventoriesData || []) as Inventory[]);
+            setStockOuts(((stockOutsData && stockOutsData.items) || stockOutsData || []) as StockOut[]);
+            setReceipts(((receiptsData && receiptsData.items) || receiptsData || []) as Receipt[]);
+            setInventories(((inventoriesData && inventoriesData.items) || inventoriesData || []) as Inventory[]);
         } catch (err: any) {
             console.error('Erreur de chargement:', err);
             setError(err?.message || 'Erreur de chargement');
