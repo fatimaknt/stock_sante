@@ -84,57 +84,16 @@ export default function AlertsPage() {
                 }
             });
 
-            // Charger les maintenances et vérifier les alertes
+            // TODO: Charger les maintenances une fois que l'API est stable
+            // Pour l'instant, on ignore les alertes de maintenances pour éviter les erreurs
+            /*
             try {
                 const maintenancesResponse = await getJSON(API('/maintenances')) as any;
-                console.log('Maintenances response:', maintenancesResponse);
-
-                let maintenancesData: any[] = [];
-                if (maintenancesResponse && typeof maintenancesResponse === 'object') {
-                    if (Array.isArray(maintenancesResponse)) {
-                        maintenancesData = maintenancesResponse;
-                    } else if (maintenancesResponse.items && Array.isArray(maintenancesResponse.items)) {
-                        maintenancesData = maintenancesResponse.items;
-                    }
-                }
-
-                console.log('Maintenances data after processing:', maintenancesData);
-
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const in7Days = new Date(today);
-                in7Days.setDate(in7Days.getDate() + 7);
-
-                if (Array.isArray(maintenancesData) && maintenancesData.length > 0) {
-                    maintenancesData.forEach((maintenance: Maintenance) => {
-                        if (maintenance.next_maintenance_date) {
-                            const nextDate = new Date(maintenance.next_maintenance_date);
-                            nextDate.setHours(0, 0, 0, 0);
-
-                            if (nextDate <= today) {
-                                // Maintenance en retard
-                                alertList.push({
-                                    maintenance,
-                                    type: 'critical',
-                                    message: `Maintenance en retard pour ${maintenance.vehicle?.plate_number || 'véhicule'} - ${maintenance.vehicle?.designation || ''}`,
-                                    id: maintenance.id + 1000000 // ID unique pour éviter les conflits
-                                });
-                            } else if (nextDate <= in7Days) {
-                                // Maintenance à venir dans 7 jours
-                                alertList.push({
-                                    maintenance,
-                                    type: 'maintenance',
-                                    message: `Maintenance prévue dans ${Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))} jour(s) pour ${maintenance.vehicle?.plate_number || 'véhicule'} - ${maintenance.vehicle?.designation || ''}`,
-                                    id: maintenance.id + 1000000
-                                });
-                            }
-                        }
-                    });
-                }
+                // ... code pour les maintenances
             } catch (maintenanceErr: any) {
                 console.error('Erreur lors du chargement des maintenances:', maintenanceErr);
-                // Continuer sans maintenances plutôt que de crasher
             }
+            */
 
             // Trier: critiques d'abord, puis maintenances, puis faibles
             alertList.sort((a, b) => {
