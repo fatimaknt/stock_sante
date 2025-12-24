@@ -75,41 +75,16 @@ Route::post('test/login', function (\Illuminate\Http\Request $request) {
     }
 });
 
-// Route pour exécuter le seeder (temporaire, pour test)
-Route::get('seed-categories', function () {
-    try {
-        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\CategorySeeder']);
-        return response()->json(['status' => 'ok', 'message' => 'Categories seeded successfully']);
-    } catch (\Exception $e) {
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-    }
-});
-
-// Route pour créer l'utilisateur admin
-Route::get('seed-admin', function () {
-    try {
-        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\DefaultUserSeeder']);
-        return response()->json(['status' => 'ok', 'message' => 'Admin user created', 'email' => 'admin@stockpro.com', 'password' => 'admin123']);
-    } catch (\Exception $e) {
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-    }
-});
-
-// Route pour créer les produits
-Route::get('seed-products', function () {
-    try {
-        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\ProductSeeder']);
-        return response()->json(['status' => 'ok', 'message' => 'Products seeded successfully', 'count' => \App\Models\Product::count()]);
-    } catch (\Exception $e) {
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-    }
-});
+// REMOVED: Seeding routes are disabled in production
+// They caused data duplication issues with firstOrCreate() logic
+// To seed the database, use: php artisan db:seed --class=ProductSeeder
+// Or run migrations only: php artisan migrate --force
 
 // Routes publiques (pas d'authentification)
 Route::post('auth/login', [AuthController::class,'login']);
-// ❌ ENREGISTREMENT DÉSACTIVÉ - Seul l'admin peut créer des comptes
+//  ENREGISTREMENT DÉSACTIVÉ - Seul l'admin peut créer des comptes
 // Route::post('auth/register', [AuthController::class,'register']);
-// ❌ ACTIVATION DÉSACTIVÉE - En attente de configuration
+//  ACTIVATION DÉSACTIVÉE - En attente de configuration
 // Route::get('auth/validate-token', [UserActivationController::class,'validateToken']);
 // Route::post('auth/activate', [UserActivationController::class,'activate']);
 Route::get('auth/google', [AuthController::class,'redirectToGoogle']);

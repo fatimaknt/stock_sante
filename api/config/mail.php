@@ -12,9 +12,12 @@ return [
     | the message. All additional mailers can be configured within the
     | "mailers" array. Examples of each type of mailer are provided.
     |
+    | In production, ALWAYS configure MAIL_MAILER=smtp in your .env
+    | Using 'log' will only log emails, not send them.
+    |
     */
 
-    'default' => env('MAIL_MAILER', 'log'),
+    'default' => env('MAIL_MAILER', env('APP_ENV') === 'production' ? 'smtp' : 'log'),
 
     /*
     |--------------------------------------------------------------------------
