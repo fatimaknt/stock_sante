@@ -87,38 +87,53 @@ export default function AlertsPage() {
             // Charger les maintenances et vérifier les alertes
             try {
                 const maintenancesResponse = await getJSON(API('/maintenances')) as any;
-                const maintenancesData = maintenancesResponse.items || (Array.isArray(maintenancesResponse) ? maintenancesResponse : []);
+                console.log('Maintenances response:', maintenancesResponse);
+
+                let maintenancesData: any[] = [];
+                if (maintenancesResponse && typeof maintenancesResponse === 'object') {
+                    if (Array.isArray(maintenancesResponse)) {
+                        maintenancesData = maintenancesResponse;
+                    } else if (maintenancesResponse.items && Array.isArray(maintenancesResponse.items)) {
+                        maintenancesData = maintenancesResponse.items;
+                    }
+                }
+
+                console.log('Maintenances data after processing:', maintenancesData);
+
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const in7Days = new Date(today);
                 in7Days.setDate(in7Days.getDate() + 7);
 
-                maintenancesData.forEach((maintenance: Maintenance) => {
-                    if (maintenance.next_maintenance_date) {
-                        const nextDate = new Date(maintenance.next_maintenance_date);
-                        nextDate.setHours(0, 0, 0, 0);
-                        
-                        if (nextDate <= today) {
-                            // Maintenance en retard
-                            alertList.push({
-                                maintenance,
-                                type: 'critical',
-                                message: `Maintenance en retard pour ${maintenance.vehicle?.plate_number || 'véhicule'} - ${maintenance.vehicle?.designation || ''}`,
-                                id: maintenance.id + 1000000 // ID unique pour éviter les conflits
-                            });
-                        } else if (nextDate <= in7Days) {
-                            // Maintenance à venir dans 7 jours
-                            alertList.push({
-                                maintenance,
-                                type: 'maintenance',
-                                message: `Maintenance prévue dans ${Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))} jour(s) pour ${maintenance.vehicle?.plate_number || 'véhicule'} - ${maintenance.vehicle?.designation || ''}`,
-                                id: maintenance.id + 1000000
-                            });
+                if (Array.isArray(maintenancesData) && maintenancesData.length > 0) {
+                    maintenancesData.forEach((maintenance: Maintenance) => {
+                        if (maintenance.next_maintenance_date) {
+                            const nextDate = new Date(maintenance.next_maintenance_date);
+                            nextDate.setHours(0, 0, 0, 0);
+
+                            if (nextDate <= today) {
+                                // Maintenance en retard
+                                alertList.push({
+                                    maintenance,
+                                    type: 'critical',
+                                    message: `Maintenance en retard pour ${maintenance.vehicle?.plate_number || 'véhicule'} - ${maintenance.vehicle?.designation || ''}`,
+                                    id: maintenance.id + 1000000 // ID unique pour éviter les conflits
+                                });
+                            } else if (nextDate <= in7Days) {
+                                // Maintenance à venir dans 7 jours
+                                alertList.push({
+                                    maintenance,
+                                    type: 'maintenance',
+                                    message: `Maintenance prévue dans ${Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))} jour(s) pour ${maintenance.vehicle?.plate_number || 'véhicule'} - ${maintenance.vehicle?.designation || ''}`,
+                                    id: maintenance.id + 1000000
+                                });
+                            }
                         }
-                    }
-                });
-            } catch (err) {
-                console.error('Erreur lors du chargement des maintenances:', err);
+                    });
+                }
+            } catch (maintenanceErr: any) {
+                console.error('Erreur lors du chargement des maintenances:', maintenanceErr);
+                // Continuer sans maintenances plutôt que de crasher
             }
 
             // Trier: critiques d'abord, puis maintenances, puis faibles
@@ -128,7 +143,7 @@ export default function AlertsPage() {
                 if (a.type === 'maintenance' && b.type === 'low') return -1;
                 if (a.type === 'low' && b.type === 'maintenance') return 1;
                 if (a.product && b.product) {
-                return a.product.name.localeCompare(b.product.name);
+                    return a.product.name.localeCompare(b.product.name);
                 }
                 if (a.maintenance && b.maintenance) {
                     return (a.maintenance.vehicle?.plate_number || '').localeCompare(b.maintenance.vehicle?.plate_number || '');
@@ -316,7 +331,7 @@ export default function AlertsPage() {
                                     const isRead = readAlerts.has(alert.id);
                                     const isMaintenance = alert.type === 'maintenance';
                                     const isProduct = !!alert.product;
-                                    
+
                                     return (
                                         <div
                                             key={alert.id}
@@ -326,7 +341,7 @@ export default function AlertsPage() {
                                                     ? 'bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 border-red-300 dark:border-red-700 shadow-red-100 dark:shadow-red-900/20'
                                                     : alert.type === 'maintenance'
                                                         ? 'bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-300 dark:border-blue-700 shadow-blue-100 dark:shadow-blue-900/20'
-                                                    : 'bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 border-orange-300 dark:border-orange-700 shadow-orange-100 dark:shadow-orange-900/20'
+                                                        : 'bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 border-orange-300 dark:border-orange-700 shadow-orange-100 dark:shadow-orange-900/20'
                                                 }`}
                                         >
                                             <div className="flex items-start justify-between">
@@ -340,18 +355,18 @@ export default function AlertsPage() {
                                                         </h3>
                                                         {isProduct && (
                                                             <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${getStatusLabel(alert.product!) === 'Critique'
-                                                            ? 'bg-gradient-to-r from-red-600 to-red-700 text-white'
+                                                                ? 'bg-gradient-to-r from-red-600 to-red-700 text-white'
                                                                 : getStatusLabel(alert.product!) === 'Faible'
-                                                                ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white'
-                                                                : 'bg-gradient-to-r from-green-600 to-green-700 text-white'
-                                                            }`}>
+                                                                    ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white'
+                                                                    : 'bg-gradient-to-r from-green-600 to-green-700 text-white'
+                                                                }`}>
                                                                 {getStatusLabel(alert.product!)}
                                                             </span>
                                                         )}
                                                         {isMaintenance && (
                                                             <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                                                                 Maintenance
-                                                        </span>
+                                                            </span>
                                                         )}
                                                         {isRead && (
                                                             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 shadow-sm">
@@ -364,26 +379,26 @@ export default function AlertsPage() {
                                                         {alert.message}
                                                     </p>
                                                     {isProduct && (
-                                                    <div className="flex flex-wrap items-center gap-4 text-sm">
-                                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
-                                                            <span className="font-semibold text-gray-700 dark:text-gray-300">Catégorie:</span>
-                                                            <span className="text-gray-600 dark:text-gray-400">{alert.product.category}</span>
-                                                        </span>
-                                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
-                                                            <span className="font-semibold text-gray-700 dark:text-gray-300">Stock:</span>
-                                                            <span className={`font-bold ${alert.type === 'critical' ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}`}>{alert.product.quantity}</span>
-                                                        </span>
-                                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
-                                                            <span className="font-semibold text-gray-700 dark:text-gray-300">Seuil:</span>
-                                                            <span className="text-gray-600 dark:text-gray-400">{alert.product.critical_level}</span>
-                                                        </span>
-                                                        {alert.product.supplier && (
+                                                        <div className="flex flex-wrap items-center gap-4 text-sm">
                                                             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
-                                                                <span className="font-semibold text-gray-700 dark:text-gray-300">Fournisseur:</span>
-                                                                <span className="text-gray-600 dark:text-gray-400">{alert.product.supplier}</span>
+                                                                <span className="font-semibold text-gray-700 dark:text-gray-300">Catégorie:</span>
+                                                                <span className="text-gray-600 dark:text-gray-400">{alert.product.category}</span>
                                                             </span>
-                                                        )}
-                                                    </div>
+                                                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
+                                                                <span className="font-semibold text-gray-700 dark:text-gray-300">Stock:</span>
+                                                                <span className={`font-bold ${alert.type === 'critical' ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}`}>{alert.product.quantity}</span>
+                                                            </span>
+                                                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
+                                                                <span className="font-semibold text-gray-700 dark:text-gray-300">Seuil:</span>
+                                                                <span className="text-gray-600 dark:text-gray-400">{alert.product.critical_level}</span>
+                                                            </span>
+                                                            {alert.product.supplier && (
+                                                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-gray-700/70 border border-gray-200 dark:border-gray-600 shadow-sm">
+                                                                    <span className="font-semibold text-gray-700 dark:text-gray-300">Fournisseur:</span>
+                                                                    <span className="text-gray-600 dark:text-gray-400">{alert.product.supplier}</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     )}
                                                     {isMaintenance && alert.maintenance && (
                                                         <div className="flex flex-wrap items-center gap-4 text-sm">
@@ -404,12 +419,12 @@ export default function AlertsPage() {
                                                 </div>
                                                 <div className="flex flex-col items-end gap-3 ml-6">
                                                     {isProduct && (
-                                                    <div className="text-right px-4 py-3 rounded-lg bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-gray-200 dark:border-gray-600 shadow-sm">
-                                                        <p className={`text-2xl font-bold ${isRead ? 'text-gray-500 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
-                                                            {formatCurrency(Number(alert.product.price))}
-                                                        </p>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Prix unitaire</p>
-                                                    </div>
+                                                        <div className="text-right px-4 py-3 rounded-lg bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-gray-200 dark:border-gray-600 shadow-sm">
+                                                            <p className={`text-2xl font-bold ${isRead ? 'text-gray-500 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
+                                                                {formatCurrency(Number(alert.product.price))}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Prix unitaire</p>
+                                                        </div>
                                                     )}
                                                     {!isRead && (
                                                         <button
