@@ -56,7 +56,11 @@ export default function InventoryPage() {
             const p = await getJSON(API('/products')) as any;
             setProducts((p.items || []).map((x: any) => ({ id: x.id, name: x.name, quantity: Number(x.quantity || 0) })));
             const h = await getJSON(API('/inventories')) as any;
-            setRows(Array.isArray(h) ? h : []);
+            if (h && h.items) {
+                setRows(Array.isArray(h.items) ? h.items : []);
+            } else {
+                setRows(Array.isArray(h) ? h : []);
+            }
             setError('');
         } catch (err: any) {
             console.error('Erreur de chargement:', err);
