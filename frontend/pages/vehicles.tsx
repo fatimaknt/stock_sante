@@ -205,6 +205,9 @@ export default function VehiclesPage() {
     };
 
     const loadMaintenances = async () => {
+        // TODO: Re-enable once maintenances API is stable
+        setMaintenances([]);
+        /*
         try {
             const data = await getJSON(API('/maintenances')) as any;
             if (data && data.items) {
@@ -216,11 +219,13 @@ export default function VehiclesPage() {
             console.error('Erreur de chargement des maintenances:', err);
             setMaintenances([]);
         }
+        */
     };
 
     useEffect(() => {
         load();
-        loadMaintenances();
+        // TODO: Re-enable once maintenances API is stable
+        // loadMaintenances();
     }, []);
 
     useEffect(() => {
