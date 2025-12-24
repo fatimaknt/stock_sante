@@ -81,8 +81,8 @@ export default function Dashboard() {
             ]);
 
             setProducts((productsData.items || []) as Product[]);
-            setStockOuts((stockOutsData || []) as StockOut[]);
-            setReceipts((receiptsData || []) as Receipt[]);
+            setStockOuts(((stockOutsData && stockOutsData.items) || stockOutsData || []) as StockOut[]);
+            setReceipts(((receiptsData && receiptsData.items) || receiptsData || []) as Receipt[]);
         } catch (err: any) {
             console.error('Erreur de chargement:', err);
             setError(err?.message || 'Erreur de chargement');

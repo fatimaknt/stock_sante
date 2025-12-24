@@ -465,37 +465,37 @@ export default function InventoryPage() {
                                 ) : (
                                     filteredRows
                                         .map(inv => {
-                                        return inv.items?.map((item, itemIdx) => {
-                                            const product = products.find(p => p.id === item.product_id);
-                                            return (
-                                                <tr key={`${inv.id}-${item.id}`} className="border-t hover:bg-purple-50 transition-colors">
-                                                    <td className="px-6 py-5 font-medium text-gray-700">{formatDate(inv.counted_at)}</td>
-                                                    <td className="px-6 py-5 font-semibold text-gray-900">{product?.name || `Produit #${item.product_id}`}</td>
-                                                    <td className="px-6 py-5 text-gray-700">{item.theoretical_qty}</td>
-                                                    <td className="px-6 py-5 text-gray-700 font-medium">{item.counted_qty}</td>
-                                                    <td className="px-6 py-5">
-                                                        <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${item.variance < 0
-                                                            ? 'bg-gradient-to-r from-red-600 to-red-700 text-white'
-                                                            : item.variance > 0
-                                                                ? 'bg-gradient-to-r from-green-600 to-green-700 text-white'
-                                                                : 'bg-gradient-to-r from-gray-600 to-gray-700 text-white'
-                                                            }`}>
-                                                            {item.variance > 0 ? '+' : ''}{item.variance}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-5 text-gray-700">{inv.agent || 'ND'}</td>
-                                                    <td className="px-6 py-5 text-gray-600">{inv.notes || '-'}</td>
-                                                    <td className="px-6 py-5">
-                                                        <button
-                                                            className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
-                                                            aria-label="supprimer"
-                                                        >
-                                                            <TrashIcon className="w-5 h-5" />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        }) || [];
+                                            return inv.items?.map((item, itemIdx) => {
+                                                const product = products.find(p => p.id === item.product_id);
+                                                return (
+                                                    <tr key={`${inv.id}-${item.id}`} className="border-t hover:bg-purple-50 transition-colors">
+                                                        <td className="px-6 py-5 font-medium text-gray-700">{formatDate(inv.counted_at)}</td>
+                                                        <td className="px-6 py-5 font-semibold text-gray-900">{product?.name || `Produit #${item.product_id}`}</td>
+                                                        <td className="px-6 py-5 text-gray-700">{item.theoretical_qty}</td>
+                                                        <td className="px-6 py-5 text-gray-700 font-medium">{item.counted_qty}</td>
+                                                        <td className="px-6 py-5">
+                                                            <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm ${item.variance < 0
+                                                                ? 'bg-gradient-to-r from-red-600 to-red-700 text-white'
+                                                                : item.variance > 0
+                                                                    ? 'bg-gradient-to-r from-green-600 to-green-700 text-white'
+                                                                    : 'bg-gradient-to-r from-gray-600 to-gray-700 text-white'
+                                                                }`}>
+                                                                {item.variance > 0 ? '+' : ''}{item.variance}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-5 text-gray-700">{inv.agent || 'ND'}</td>
+                                                        <td className="px-6 py-5 text-gray-600">{inv.notes || '-'}</td>
+                                                        <td className="px-6 py-5">
+                                                            <button
+                                                                className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all transform hover:scale-110"
+                                                                aria-label="supprimer"
+                                                            >
+                                                                <TrashIcon className="w-5 h-5" />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            }) || [];
                                         })
                                         .flat()
                                         .slice((inventoryCurrentPage - 1) * inventoryItemsPerPage, inventoryCurrentPage * inventoryItemsPerPage)
@@ -511,11 +511,10 @@ export default function InventoryPage() {
                                 <button
                                     onClick={() => setInventoryCurrentPage(prev => Math.max(1, prev - 1))}
                                     disabled={inventoryCurrentPage === 1}
-                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                                        inventoryCurrentPage === 1
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${inventoryCurrentPage === 1
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-                                    }`}
+                                        }`}
                                 >
                                     <ChevronLeftIcon className="w-5 h-5" />
                                     <span>Précédent</span>
@@ -533,7 +532,7 @@ export default function InventoryPage() {
                                             const totalPages = Math.ceil(filteredRows.length / inventoryItemsPerPage);
                                             const showEllipsis = index > 0 && array[index - 1] !== page - 1;
                                             const showEllipsisAfter = index < array.length - 1 && array[index + 1] !== page + 1 && page !== totalPages;
-                                            
+
                                             return (
                                                 <React.Fragment key={page}>
                                                     {showEllipsis && (
@@ -541,11 +540,10 @@ export default function InventoryPage() {
                                                     )}
                                                     <button
                                                         onClick={() => setInventoryCurrentPage(page)}
-                                                        className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${
-                                                            inventoryCurrentPage === page
+                                                        className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${inventoryCurrentPage === page
                                                                 ? 'bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-lg'
                                                                 : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {page}
                                                     </button>
@@ -559,11 +557,10 @@ export default function InventoryPage() {
                                 <button
                                     onClick={() => setInventoryCurrentPage(prev => Math.min(Math.ceil(filteredRows.length / inventoryItemsPerPage), prev + 1))}
                                     disabled={inventoryCurrentPage >= Math.ceil(filteredRows.length / inventoryItemsPerPage)}
-                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                                        inventoryCurrentPage >= Math.ceil(filteredRows.length / inventoryItemsPerPage)
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${inventoryCurrentPage >= Math.ceil(filteredRows.length / inventoryItemsPerPage)
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-                                    }`}
+                                        }`}
                                 >
                                     <span>Suivant</span>
                                     <ChevronRightIcon className="w-5 h-5" />
