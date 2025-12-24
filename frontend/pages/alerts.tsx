@@ -86,13 +86,14 @@ export default function AlertsPage() {
 
             // Charger les maintenances et vérifier les alertes
             try {
-                const maintenancesData = await getJSON(API('/maintenances')) as Maintenance[];
+                const maintenancesResponse = await getJSON(API('/maintenances')) as any;
+                const maintenancesData = maintenancesResponse.items || (Array.isArray(maintenancesResponse) ? maintenancesResponse : []);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const in7Days = new Date(today);
                 in7Days.setDate(in7Days.getDate() + 7);
 
-                maintenancesData.forEach(maintenance => {
+                maintenancesData.forEach((maintenance: Maintenance) => {
                     if (maintenance.next_maintenance_date) {
                         const nextDate = new Date(maintenance.next_maintenance_date);
                         nextDate.setHours(0, 0, 0, 0);

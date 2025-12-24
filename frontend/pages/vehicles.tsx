@@ -207,7 +207,11 @@ export default function VehiclesPage() {
     const loadMaintenances = async () => {
         try {
             const data = await getJSON(API('/maintenances')) as any;
-            setMaintenances(Array.isArray(data) ? data : []);
+            if (data && data.items) {
+                setMaintenances(Array.isArray(data.items) ? data.items : []);
+            } else {
+                setMaintenances(Array.isArray(data) ? data : []);
+            }
         } catch (err: any) {
             console.error('Erreur de chargement des maintenances:', err);
             setMaintenances([]);
