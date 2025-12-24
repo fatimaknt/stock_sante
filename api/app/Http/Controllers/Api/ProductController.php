@@ -19,7 +19,7 @@ class ProductController extends Controller
                 ->paginate($per_page, ['id', 'name', 'ref', 'category', 'category_id', 'quantity', 'price', 'critical_level', 'supplier', 'acquirer', 'beneficiary', 'acquired_at', 'created_at']);
 
             \Log::info('Retrieved ' . count($pagination->items()) . ' products from page ' . $page);
-            
+
             return response()->json([
                 'items' => $pagination->items(),
                 'total' => $pagination->total(),

@@ -8,8 +8,11 @@ use Illuminate\Support\Facades\Auth;
 
 class ReceiptController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = (int)$request->get('per_page', 15);
+        $page = (int)$request->get('page', 1);
+
         // Récupérer les réceptions approuvées de la table receipts
         $approvedReceipts = Receipt::with(['items', 'approver'])->withCount('items')->latest()->get()->map(function($r) {
             return [
@@ -66,13 +69,27 @@ class ReceiptController extends Controller
             });
 
         // Combiner et trier par date (plus récent en premier)
-        return $approvedReceipts->concat($pendingReceipts)->sortByDesc(function($r) {
+        $allReceipts = $approvedReceipts->concat($pendingReceipts)->sortByDesc(function($r) {
             // Utiliser received_at pour les réceptions approuvées, created_at pour les pending
             if (isset($r['created_at'])) {
                 return $r['created_at'];
             }
             return $r['received_at'] ?? '1970-01-01';
         })->values();
+
+        // Paginer les résultats
+        $total = $allReceipts->count();
+        $lastPage = ceil($total / $perPage);
+        $offset = ($page - 1) * $perPage;
+        $items = $allReceipts->slice($offset, $perPage)->values();
+
+        return response()->json([
+            'items' => $items,
+            'total' => $total,
+            'per_page' => $perPage,
+            'current_page' => $page,
+            'last_page' => $lastPage,
+        ], 200);
     }
 
     public function store(Request $r)

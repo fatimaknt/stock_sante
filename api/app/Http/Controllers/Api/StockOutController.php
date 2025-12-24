@@ -8,9 +8,12 @@ use Illuminate\Support\Facades\Auth;
 
 class StockOutController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         try {
+            $perPage = (int)$request->get('per_page', 15);
+            $page = (int)$request->get('page', 1);
+
             // Récupérer les sorties approuvées de la table stock_movements
             $approvedStockOuts = StockMovement::where('type', 'stockout')
                 ->with('product')
@@ -59,12 +62,26 @@ class StockOutController extends Controller
                 });
 
             // Combiner et trier par date
-            return $approvedStockOuts->concat($pendingStockOuts)->sortByDesc(function($r) {
+            $allStockOuts = $approvedStockOuts->concat($pendingStockOuts)->sortByDesc(function($r) {
                 if (isset($r['created_at'])) {
                     return $r['created_at'];
                 }
                 return $r['movement_date'] ?? '1970-01-01';
             })->values();
+
+            // Paginer les résultats
+            $total = $allStockOuts->count();
+            $lastPage = ceil($total / $perPage);
+            $offset = ($page - 1) * $perPage;
+            $items = $allStockOuts->slice($offset, $perPage)->values();
+
+            return response()->json([
+                'items' => $items,
+                'total' => $total,
+                'per_page' => $perPage,
+                'current_page' => $page,
+                'last_page' => $lastPage,
+            ], 200);
         } catch (\Exception $e) {
             \Log::error('StockoutController::index error: ' . $e->getMessage());
             return response()->json(['error' => 'Erreur serveur', 'message' => $e->getMessage()], 500);

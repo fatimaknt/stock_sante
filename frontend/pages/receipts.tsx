@@ -56,7 +56,9 @@ export default function ReceiptsPage() {
 
     // Pagination
     const [receiptsCurrentPage, setReceiptsCurrentPage] = useState(1);
-    const [receiptsItemsPerPage] = useState(10);
+    const [receiptsTotalPages, setReceiptsTotalPages] = useState(1);
+    const [receiptsTotalItems, setReceiptsTotalItems] = useState(0);
+    const receiptsItemsPerPage = 15;
 
     // États pour modification et suppression
     const [editingReceipt, setEditingReceipt] = useState<ReceiptRow | null>(null);
@@ -67,6 +69,7 @@ export default function ReceiptsPage() {
     // États pour le modal de détails
     const [detailReceipt, setDetailReceipt] = useState<ReceiptRow | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     // Initialize date on client side only
     useEffect(() => {
@@ -78,24 +81,36 @@ export default function ReceiptsPage() {
 
     const load = async () => {
         try {
+            setIsLoading(true);
             const [p, r] = await Promise.all([
                 getJSON(API('/products')) as Promise<any>,
-                getJSON(API('/receipts')) as Promise<any>
+                getJSON(API(`/receipts?page=${receiptsCurrentPage}&per_page=${receiptsItemsPerPage}`)) as Promise<any>
             ]);
             setProducts((p.items || []).map((x: any) => ({ id: x.id, name: x.name })));
             setCategories(CATEGORIES_FALLBACK); // Utiliser directement le fallback local
             console.log('Réceptions chargées:', r);
-            setRows(Array.isArray(r) ? r : []);
+            if (r && r.items) {
+                setRows(r.items);
+                setReceiptsTotalPages(r.last_page || 1);
+                setReceiptsTotalItems(r.total || 0);
+            } else {
+                setRows(Array.isArray(r) ? r : []);
+            }
             setError('');
+            setIsLoading(false);
         } catch (err: any) {
             console.error('Erreur de chargement:', err);
             setError(err?.message || 'Erreur de chargement');
             setRows([]);
             setProducts([]);
             setCategories(CATEGORIES_FALLBACK);
+            setIsLoading(false);
         }
     };
-    useEffect(() => { load(); }, []);
+    useEffect(() => {
+        setReceiptsCurrentPage(1);
+    }, [searchQuery, dateFilter]);
+    useEffect(() => { load(); }, [receiptsCurrentPage]);
 
 
     useEffect(() => {

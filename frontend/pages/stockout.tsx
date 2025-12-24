@@ -54,7 +54,10 @@ export default function StockOutPage() {
 
     // Pagination
     const [stockOutsCurrentPage, setStockOutsCurrentPage] = useState(1);
-    const [stockOutsItemsPerPage] = useState(10);
+    const [stockOutsTotalPages, setStockOutsTotalPages] = useState(1);
+    const [stockOutsTotalItems, setStockOutsTotalItems] = useState(0);
+    const stockOutsItemsPerPage = 15;
+    const [isLoading, setIsLoading] = useState(false);
 
     // États pour les modals de validation/retour/visualisation
     const [stockOutToValidate, setStockOutToValidate] = useState<StockOutRow | null>(null);
@@ -72,10 +75,18 @@ export default function StockOutPage() {
 
     const load = async () => {
         try {
+            setIsLoading(true);
             const p = await getJSON(API('/products')) as any;
             setProducts((p.items || []).map((x: any) => ({ id: x.id, name: x.name, quantity: Number(x.quantity ?? 0) })));
-            const s = await getJSON(API('/stockouts')) as any;
-            setRows(Array.isArray(s) ? s : []);
+            const s = await getJSON(API(`/stockouts?page=${stockOutsCurrentPage}&per_page=${stockOutsItemsPerPage}`)) as any;
+            if (s && s.items) {
+                setRows(s.items);
+                setStockOutsTotalPages(s.last_page || 1);
+                setStockOutsTotalItems(s.total || 0);
+            } else {
+                setRows(Array.isArray(s) ? s : []);
+            }
+            setIsLoading(false);
 
             // Calculer les top 5 bénéficiaires
             const beneficiaryMap = new Map<string, { productIds: Set<number>, exitCount: number, totalUnits: number }>();
@@ -112,7 +123,11 @@ export default function StockOutPage() {
         }
     };
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => { load(); }, [stockOutsCurrentPage]);
+
+    useEffect(() => {
+        setStockOutsCurrentPage(1);
+    }, [searchQuery, selectedType, selectedStatus, selectedDate]);
 
     useEffect(() => {
         if (success) {
@@ -1143,8 +1158,8 @@ export default function StockOutPage() {
                                     onClick={() => setStockOutsCurrentPage(prev => Math.max(1, prev - 1))}
                                     disabled={stockOutsCurrentPage === 1}
                                     className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${stockOutsCurrentPage === 1
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
                                         }`}
                                 >
                                     <ChevronLeftIcon className="w-5 h-5" />
@@ -1172,8 +1187,8 @@ export default function StockOutPage() {
                                                     <button
                                                         onClick={() => setStockOutsCurrentPage(page)}
                                                         className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${stockOutsCurrentPage === page
-                                                                ? 'bg-gradient-to-r from-red-600 to-pink-600 text-white shadow-lg'
-                                                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                                            ? 'bg-gradient-to-r from-red-600 to-pink-600 text-white shadow-lg'
+                                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
                                                             }`}
                                                     >
                                                         {page}
@@ -1189,8 +1204,8 @@ export default function StockOutPage() {
                                     onClick={() => setStockOutsCurrentPage(prev => Math.min(Math.ceil(filteredRows.length / stockOutsItemsPerPage), prev + 1))}
                                     disabled={stockOutsCurrentPage >= Math.ceil(filteredRows.length / stockOutsItemsPerPage)}
                                     className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${stockOutsCurrentPage >= Math.ceil(filteredRows.length / stockOutsItemsPerPage)
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
                                         }`}
                                 >
                                     <span>Suivant</span>

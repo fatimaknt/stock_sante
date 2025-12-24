@@ -10,13 +10,16 @@ class MaintenanceController extends Controller
 {
     public function index(Request $r)
     {
+        $perPage = (int)$r->get('per_page', 15);
+        $page = (int)$r->get('page', 1);
+
         $query = Maintenance::with('vehicle')->latest('maintenance_date');
-        
+
         if ($r->has('vehicle_id')) {
             $query->where('vehicle_id', $r->vehicle_id);
         }
-        
-        return $query->get()->map(function($m) {
+
+        $allMaintenances = $query->get()->map(function($m) {
             return [
                 'id' => $m->id,
                 'vehicle_id' => $m->vehicle_id,
@@ -36,6 +39,20 @@ class MaintenanceController extends Controller
                 'created_at' => $m->created_at->format('Y-m-d H:i:s'),
             ];
         });
+
+        // Paginer les résultats
+        $total = $allMaintenances->count();
+        $lastPage = ceil($total / $perPage);
+        $offset = ($page - 1) * $perPage;
+        $items = $allMaintenances->slice($offset, $perPage)->values();
+
+        return response()->json([
+            'items' => $items,
+            'total' => $total,
+            'per_page' => $perPage,
+            'current_page' => $page,
+            'last_page' => $lastPage,
+        ], 200);
     }
 
     public function store(Request $r)
